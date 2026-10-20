@@ -61,9 +61,7 @@ class TestInstanciacaoEContratos:
         assert isinstance(erro, exc_class)
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_atributo_message_acessivel(
-        self, exc_class: Type[FrameworkError]
-    ) -> None:
+    def test_atributo_message_acessivel(self, exc_class: Type[FrameworkError]) -> None:
         """O atributo `message` e acessivel e corresponde ao valor passado."""
         erro = exc_class("mensagem legivel do erro")
         assert erro.message == "mensagem legivel do erro"
@@ -121,9 +119,7 @@ class TestImutabilidadeDoContexto:
     """Prova a copia defensiva e a exposicao read-only de `context`."""
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_copia_defensiva_externa(
-        self, exc_class: Type[FrameworkError]
-    ) -> None:
+    def test_copia_defensiva_externa(self, exc_class: Type[FrameworkError]) -> None:
         """Modificar o dict original apos a instancia nao altera o interno."""
         ctx: Dict[str, Any] = {"key": "value"}
         erro = exc_class("imutabilidade", context=ctx)
@@ -133,9 +129,7 @@ class TestImutabilidadeDoContexto:
         assert erro.context["key"] != "changed"
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_copia_defensiva_profunda(
-        self, exc_class: Type[FrameworkError]
-    ) -> None:
+    def test_copia_defensiva_profunda(self, exc_class: Type[FrameworkError]) -> None:
         """Mutacao de objetos aninhados no original nao vaza para dentro."""
         ctx: Dict[str, Any] = {"outer": {"inner": "valor"}}
         erro = exc_class("deep copy", context=ctx)
@@ -264,17 +258,24 @@ class TestEncadeamento:
         assert excinfo.value.cause is original
 
     def test_encadeamento_especifico_descrito_na_especificacao(self) -> None:
-        """Cenario 6.4 literal: ValueError -> IngestorError(cause=...)."""
+        """Cenario 6.4 literal: ValueError -> IngestorError(cause=...).
+
+        Nota: o teste mantem uma referencia explicita (`capturado`) ao erro
+        original porque o Python apaga a variavel do `except ... as nome`
+        ao sair do bloco (escopo limitado por PEP 3134).
+        """
+        capturado: ValueError
         try:
             raise ValueError("Erro original")
         except ValueError as erro_original:
+            capturado = erro_original
             with pytest.raises(IngestorError) as excinfo:
                 raise IngestorError(
                     "Falha ao escrever no Neo4j",
                     context={"destination": "neo4j"},
                     cause=erro_original,
                 ) from erro_original
-        assert excinfo.value.__cause__ is erro_original
+        assert excinfo.value.__cause__ is capturado
         assert str(excinfo.value.__cause__) == "Erro original"
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)

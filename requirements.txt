@@ -1,0 +1,25 @@
+# ============================================================
+# MCA-Solo - Requisitos do Projeto
+# ============================================================
+# Runtime: Python >= 3.10 (usado: 3.12)
+#
+# O modulo framework/core/exceptions.py (ID 1.1) utiliza apenas a
+# biblioteca padrao do Python (copy, typing), portanto NAO ha
+# dependencias de runtime adicionais para este artefato.
+#
+# As dependencias abaixo sao as ferramentas de teste e validacao
+# estatica exigidas pela Secao 7 da Especificacao Tecnica ID 1.1
+# (pytest, pytest-cov, mypy, black, flake8).
+# Versoes fixadas com base nos ambientes homologados (>= indica
+# compatibilidade minima testada).
+# ============================================================
+
+# --- Testes ---
+pytest>=8.0              # Framework de execucao dos testes unitarios
+pytest-cov>=5.0          # Medicao de cobertura (exigido: 100% do modulo)
+coverage[toml]>=7.0      # Backend de cobertura utilizado pelo pytest-cov
+
+# --- Validacao Estatica / Qualidade ---
+mypy>=1.10               # Verificacao estrita de Type Hints (PEP 484)
+black>=24.0              # Formatacao automatica PEP 8 (black --check)
+flake8>=7.0              # Linter PEP 8 complementar
