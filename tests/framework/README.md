@@ -165,7 +165,7 @@ extend-ignore = E203, W503
 ## 6. Checklist de validação manual (Definition of Done — ID 1.1)
 
 Rode tudo em sequência e confira cada resultado:
-
+- Linux:
 ```bash
 pytest tests/framework/test_core_exceptions.py -v \
   && pytest --cov=framework.core.exceptions --cov-report=term-missing tests/framework/test_core_exceptions.py \
@@ -173,6 +173,22 @@ pytest tests/framework/test_core_exceptions.py -v \
   && black --check framework/core/exceptions.py tests/framework/test_core_exceptions.py \
   && flake8 --max-line-length=88 framework/core/exceptions.py tests/framework/test_core_exceptions.py \
   && echo "✅ ID 1.1: todos os gateways de qualidade passaram"
+```
+- Powershell (5.1):
+```ps
+& {
+    pytest tests/framework/test_core_exceptions.py -v
+    if ($LastExitCode -ne 0) { return }
+    pytest --cov=framework.core.exceptions --cov-report=term-missing tests/framework/test_core_exceptions.py
+    if ($LastExitCode -ne 0) { return }
+    mypy framework/core/exceptions.py
+    if ($LastExitCode -ne 0) { return }
+    black --check framework/core/exceptions.py tests/framework/test_core_exceptions.py
+    if ($LastExitCode -ne 0) { return }
+    flake8 --max-line-length=88 framework/core/exceptions.py tests/framework/test_core_exceptions.py
+    if ($LastExitCode -ne 0) { return }
+    Write-Output "✅ ID 1.1: todos os gateways de qualidade passaram"
+}
 ```
 
 - [ ] `pytest`: **110 passed**, 0 failed, 0 errors.
