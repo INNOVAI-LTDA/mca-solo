@@ -1,0 +1,34 @@
+# ============================================================
+# MCA-Solo - Requisitos do PIPELINE DE TESTE (copia local da suite)
+# ============================================================
+# Localizacao: tests/framework/requirements.txt
+# Complemento do artefato de teste da Especificacao Tecnica ID 1.2
+# (tests/framework/test_core_entities.py), junto ao README.md desta pasta.
+#
+# Runtime: Python >= 3.10 (ambiente homologado: 3.12)
+#
+# IMPORTANTE: os modulos de producao avaliados por esta suíte
+# (framework/core/entities.py e framework/core/exceptions.py) utilizam
+# APENAS a biblioteca padrao do Python (dataclasses, datetime, enum,
+# typing, copy). Portanto NAO ha dependencias de runtime adicionais;
+# as bibliotecas abaixo servem exclusivamente para execucao dos testes,
+# medicao de cobertura e validacao estatica (Secao 7 das specs ID 1.1/1.2).
+#
+# Instalacao (a partir da RAIZ do projeto, apos criar/ativar o venv):
+#   Linux:            pip install -r tests/framework/requirements.txt
+#   PowerShell 5.1:   pip install -r .\tests\framework\requirements.txt
+#
+# Este arquivo mantem as MESMAS fixacoes da raiz (requirements.txt),
+# para que a suíte possa ser reinstalada de forma autonoma a partir
+# desta pasta em ambientes isolados/CI.
+# ============================================================
+
+# --- Testes ---
+pytest>=8.0              # Framework de execucao dos testes unitarios
+pytest-cov>=5.0          # Medicao de cobertura (meta: >= 90%; estado atual: 100%)
+coverage[toml]>=7.0      # Backend de cobertura utilizado pelo pytest-cov
+
+# --- Validacao Estatica / Qualidade ---
+mypy>=1.10               # Verificacao estrita de Type Hints (PEP 484 / PEP 585)
+black>=24.0              # Formatacao automatica PEP 8 (black --check)
+flake8>=7.0              # Linter PEP 8 complementar (usar --max-line-length=88)
