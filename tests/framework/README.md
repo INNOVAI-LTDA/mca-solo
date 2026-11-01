@@ -2,12 +2,14 @@
 
 Guia de validação manual da suíte de testes do **Milestone M1 — Core Framework**,
 cobrindo os artefatos das **Especificações Técnicas ID 1.1** (Hierarquia de Exceções
-do Core) e **ID 1.2** (Contratos de Dados e Gestão Imutáveis).
+do Core), **ID 1.2** (Contratos de Dados e Gestão Imutáveis) e **ID 1.3** (Portas de
+Domínio — ABCs do Core Framework).
 
 | Artefato de produção | Artefato de teste | Status esperado |
 | :--- | :--- | :--- |
 | `framework/core/exceptions.py` | `test_core_exceptions.py` | ✅ Implementado (ID 1.1) — 110 testes |
 | `framework/core/entities.py` | `test_core_entities.py` | ✅ Implementado (ID 1.2) — 33 testes |
+| `framework/core/ports.py` | `test_core_ports.py` | ✅ Implementado (ID 1.3) — 86 testes |
 | `framework/core/dags` | `test_core_dags.py` | ⏳ Placeholder (vazio) |
 | `framework/execution/*` | `test_execution.py` | ⏳ Placeholder (vazio) |
 | `framework/management/*` | `test_management.py` | ⏳ Placeholder (vazio) |
@@ -125,16 +127,17 @@ Artefato: `framework/core/entities.py` → teste: `tests/framework/test_core_ent
 
 ### 3A.0. Reexecutar TODA a suíte de testes manualmente (visão geral)
 
-A suíte completa do projeto hoje possui **143 testes** distribuídos em:
+A suíte completa do projeto hoje possui **229 testes** distribuídos em:
 
 | Arquivo | Conteúdo | Qtd. esperada |
 | :--- | :--- | :--- |
 | `tests/framework/test_core_exceptions.py` | Spec ID 1.1 — Hierarquia de Exceções | 110 passed |
 | `tests/framework/test_core_entities.py` | Spec ID 1.2 — Contratos Imutáveis | 33 passed |
+| `tests/framework/test_core_ports.py` | Spec ID 1.3 — Portas de Domínio (ABCs) | 86 passed |
 | `tests/framework/test_core_dags.py` | Placeholder (task futura) | no tests ran |
 | `tests/framework/test_execution.py` | Placeholder (task futura) | no tests ran |
 | `tests/framework/test_management.py` | Placeholder (task futura) | no tests ran |
-| `tests/application/*` | Testes da camada de aplicação | incluídos no total |
+| `tests/application/*` | Testes da camada de aplicação | placeholders até o Épico DEV |
 
 **Passo único obrigatório:** posicionar-se na **raiz do repositório** (o diretório que
 contém `pytest.ini` e `conftest.py`) antes de qualquer comando — a configuração de
@@ -240,6 +243,79 @@ flake8 --max-line-length=88 framework/core/entities.py tests/framework/test_core
 
 ---
 
+## 3B. Suíte da Especificação Técnica ID 1.3 — Portas de Domínio (`test_core_ports.py`)
+
+Artefato: `framework/core/ports.py` → teste: `tests/framework/test_core_ports.py`.
+
+### 3B.1. Execução verbosa da ID 1.3 (recomendada)
+
+- Linux:
+```bash
+pytest tests/framework/test_core_ports.py -v
+```
+- PowerShell 5.1:
+```ps
+pytest tests\framework\test_core_ports.py -v
+```
+
+Saída esperada: **86 testes passando** (`86 passed`), organizados pelas 6 categorias da Seção 6:
+
+| Classe de teste | Categoria da spec | O que valida |
+| :--- | :--- | :--- |
+| Barreira de abstração | **6.1** | `FetcherPort()`, `IngestPort()`, `TransformerPort()`, `ValidatorPort()`, `URNPort()` levantam `TypeError` com menção aos métodos abstratos |
+| Mixins de contrato (`*ContractTests` + stubs) | **6.2** | Tipos de retorno (`isinstance` de `FetchResult`/`IngestResult`/`ValidationResult`), presença dos métodos obrigatórios (`hasattr`) e assinaturas via `inspect.signature` |
+| Substituição (LSP) | **6.3** | `isinstance(stub, Porta)` para as 5 ABCs e uso polimórfico em contexto que espera a porta |
+| Contrato incompleto | **6.4** | Subclasse parcial (sem um método abstrato) levanta `TypeError` na instanciação |
+| Docstrings/metadados | **6.5** | Docstring não-vazia por ABC e por método; seções `Pre-condicoes`, `Pos-condicoes`, `Invariantes`; corpos apenas com `...` |
+| Independência de adaptadores | **6.6** | Análise AST de `ports.py`: nenhum import de `application/` ou `framework.execution/`; dependência unidirecional ports → entities; `__all__` com as 5 portas |
+
+Comandos granulares equivalentes (rode da raiz):
+
+```bash
+# Uma categoria inteira (ex.: barreira de abstração)
+pytest tests/framework/test_core_ports.py::TestBarreiraDeAbstracao -v
+
+# Filtro por palavra-chave (ex.: todos os cenários de URNPort)
+pytest tests/framework/test_core_ports.py -k "urn" -v
+```
+
+### 3B.2. Cobertura de código da ID 1.3 (meta ≥ 95%; estado atual: 100%)
+
+```bash
+pytest --cov=framework.core.ports --cov-report=term-missing tests/framework/test_core_ports.py
+```
+
+Saída esperada — **zero linhas faltantes**:
+
+```
+Name                      Stmts   Miss  Cover   Missing
+--------------------------------------------------------
+framework/core/ports.py      36      0   100%
+--------------------------------------------------------
+TOTAL                        36      0   100%
+```
+
+### 3B.3. Validação estática da ID 1.3 (Seção 7 da spec)
+
+```bash
+# mypy: use --explicit-package-bases OU o nome de pacote (framework/__init__.py
+# não existe no repositório — ver §7 "Source file found twice" do README)
+mypy --explicit-package-bases framework/core/ports.py   # esperado: Success: no issues found
+mypy -p framework.core                                  # alternativa: todo o pacote core
+black --check framework/core/ports.py tests/framework/test_core_ports.py
+ruff check framework/core/ports.py         # linter exigido pela spec ID 1.3
+flake8 --max-line-length=88 framework/core/ports.py tests/framework/test_core_ports.py
+pylint framework/core/ports.py --disable=all --enable=abstract-method
+```
+
+> ℹ️ Sobre o `ruff`: ele pode reportar `UP006`/`UP035` (sugerindo `dict`/`list` nativos em
+> vez de `typing.Dict`/`typing.List`). Esses avisos são **intencionais e aceitáveis** neste
+> projeto — a Seção 5.1 da spec ID 1.3 exige explicitamente o uso de `Dict[str, Any]`,
+> `List[...]` e `Optional[...]` do módulo `typing`, no mesmo padrão de `entities.py`.
+> Para silenciá-los pontualmente: `ruff check --ignore UP006,UP035 framework/core/ports.py`.
+
+---
+
 ## 4. Cobertura de código (meta: 100%)
 
 ```bash
@@ -303,8 +379,8 @@ extend-ignore = E203, W503
 - Linux:
 ```bash
 pytest tests/ -v \
-  && pytest --cov=framework.core.exceptions --cov=framework.core.entities --cov-report=term-missing tests/framework/ \
-  && mypy framework/core/exceptions.py framework/core/entities.py \
+  && pytest --cov=framework.core.exceptions --cov=framework.core.entities --cov=framework.core.ports --cov-report=term-missing tests/framework/ \
+  && mypy framework/core/exceptions.py framework/core/entities.py framework/core/ports.py \
   && black --check framework/ tests/framework/ \
   && flake8 --max-line-length=88 framework/core/ tests/framework/ \
   && echo "✅ M1: todos os gateways de qualidade passaram"
@@ -314,9 +390,9 @@ pytest tests/ -v \
 & {
     pytest tests\ -v
     if ($LastExitCode -ne 0) { return }
-    pytest --cov=framework.core.exceptions --cov=framework.core.entities --cov-report=term-missing tests\framework\
+    pytest --cov=framework.core.exceptions --cov=framework.core.entities --cov=framework.core.ports --cov-report=term-missing tests\framework\
     if ($LastExitCode -ne 0) { return }
-    mypy framework\core\exceptions.py framework\core\entities.py
+    mypy framework\core\exceptions.py framework\core\entities.py framework\core\ports.py
     if ($LastExitCode -ne 0) { return }
     black --check framework\ tests\framework\
     if ($LastExitCode -ne 0) { return }
@@ -326,8 +402,22 @@ pytest tests/ -v \
 }
 ```
 
-Saída esperada da suíte completa: **143 passed** (110 da ID 1.1 + 33 da ID 1.2 + testes
-da camada `tests/application/`), com os placeholders reportando `no tests ran`.
+Saída esperada da suíte completa: **229 passed** (110 da ID 1.1 + 33 da ID 1.2 +
+86 da ID 1.3), com os placeholders (`tests/framework/test_core_dags.py`,
+`test_execution.py`, `test_management.py` e `tests/application/*`) reportando
+`no tests ran`.
+
+Cobertura esperada dos três módulos do Core (meta ≥ 95%; estado atual: 100%):
+
+```
+Name                           Stmts   Miss  Cover   Missing
+ ------------------------------------------------------------
+ framework/core/entities.py        68      0   100%
+ framework/core/exceptions.py      40      0   100%
+ framework/core/ports.py           36      0   100%
+ ------------------------------------------------------------
+ TOTAL                            144      0   100%
+```
 
 ### 6.2. Checklist por especificação
 
@@ -345,6 +435,15 @@ da camada `tests/application/`), com os placeholders reportando `no tests ran`.
 - [ ] `black --check`: arquivos inalterados (formatados).
 - [ ] `flake8`: exit code `0` (sem violações com `--max-line-length=88`).
 
+**ID 1.3 — Portas de Domínio / ABCs (`test_core_ports.py`):**
+- [ ] `pytest`: **86 passed**, 0 failed, 0 errors.
+- [ ] Cobertura de `framework/core/ports.py`: **100%** (meta da spec: ≥ 95%).
+- [ ] `mypy`: nenhum erro de tipagem (portas ↔ entidades compatíveis).
+- [ ] `black --check`: arquivos inalterados (formatados).
+- [ ] `ruff check`: sem violações relevantes (ver nota 3B.3 sobre `UP006/UP035`).
+- [ ] `flake8`: exit code `0` (sem violações com `--max-line-length=88`).
+- [ ] Sem imports circulares: `ports.py → entities.py` é unidirecional.
+
 ---
 
 ## 7. Solução de problemas
@@ -357,7 +456,8 @@ da camada `tests/application/`), com os placeholders reportando `no tests ran`.
 | `python.exe -x.y.dll not found` ao ativar o venv no Windows | Atalho antigo do Python no PATH apontando para versão desinstalada | Use o caminho completo: `& "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" -m pytest ...` ou recrie o venv (§1.1) |
 | `Set-ExecutionPolicy` bloqueia `Activate.ps1` no PowerShell 5.1 | Política de execução padrão (`Restricted`) | `Set-ExecutionPolicy -Scope CurrentUser ExecutionPolicy RemoteSigned` (uma única vez) |
 | Coleta aborta com `Failed: Marks cannot be applied to fixtures` citando `libtmux` | Plugin instalado **globalmente** e carregado automaticamente pelo pytest, incompatível com a versão instalada do pytest | Desative o plugin na linha de comando: `pytest -p no:libtmux tests/framework/test_core_entities.py -v`, ou remova-o do ambiente global (`pip uninstall pytest-libtmux`). Em último caso, recrie o venv limpo conforme §1.1 |
-| Cobertura mostra `0%` ou módulo não rastreado | Nome do alvo incorreto no `--cov` | Usar exatamente `--cov=framework.core.exceptions` / `--cov=framework.core.entities` (notação de ponto, caminho importável) |
+| Cobertura mostra `0%` ou módulo não rastreado | Nome do alvo incorreto no `--cov` | Usar exatamente `--cov=framework.core.exceptions` / `--cov=framework.core.entities` / `--cov=framework.core.ports` (notação de ponto, caminho importável) |
+| `mypy`: `Source file found twice under different module names: "core" and "framework.core"` | O diretório `framework/` **não possui** `__init__.py` (namespace package), então o mypy resolve o mesmo arquivo por dois nomes ao usar caminhos explícitos | Adicione a flag: `mypy --explicit-package-bases framework/core/ports.py` — ou verifique pelo nome de pacote: `mypy -p framework.core` (ambos terminam com `Success: no issues found`) |
 
 ---
 
@@ -365,7 +465,8 @@ da camada `tests/application/`), com os placeholders reportando `no tests ran`.
 
 - Especificação Técnica ID 1.1 — Seções 6 (estratégia de testes) e 7 (ferramentas).
 - Especificação Técnica ID 1.2 — Seções 6 (cenários 6.1–6.5) e 7 (ferramentas).
-- `docs/contracts.md` (Seções 4 e 5), `docs/arquitetura_molde_v2_orquestracao_gestao.md`
-  (Seção 3.2.1), `docs/examples.md` — contratos de Domínio e Gestão.
+- Especificação Técnica ID 1.3 — Seções 6 (cenários 6.1–6.6) e 7 (ferramentas, com `ruff`).
+- `docs/contracts.md` (Seções 3, 4 e 5), `docs/arquitetura_molde_v2_orquestracao_gestao.md`
+  (Seções 2 e 3.2.1), `docs/examples.md` — contratos de Domínio e Gestão.
 - [`requirements.txt`](requirements.txt) — dependências fixadas locais desta pasta.
 - [`../../requirements.txt`](../../requirements.txt) — dependências fixadas da raiz do pipeline.
