@@ -933,11 +933,13 @@ class TestConformidadeInfraestrutura:
         from yamllint import config as yl_config
         from yamllint import linter
 
-        linha = yl_config.LintConfig("relaxed")
+        # Equivalente programatico de `yamllint -d relaxed`: a configuracao
+        # 'relaxed' e herdada via 'extends:' e o primeiro argumento de
+        # linter.run() e um file-like object (nao caminho).
+        linha = yl_config.YamlLintConfig("extends: relaxed")
         for caminho in _core_paths():
-            problemas = list(
-                linter.LintFile(filepath=str(caminho), config=linha, level="error")
-            )
+            with open(caminho, encoding="utf-8") as handle:
+                problemas = list(linter.run(handle, linha))
             erros = [p for p in problemas if p.level == "error"]
             assert not erros, f"{caminho.name}: erros yamllint: {erros}"
 

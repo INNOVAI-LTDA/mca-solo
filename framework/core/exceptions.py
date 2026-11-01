@@ -105,11 +105,18 @@ class FrameworkError(Exception):
         return self._message
 
 
-class ConfigurationError(FrameworkError):
+class ConfigurationError(FrameworkError, ValueError):
     """Erro de configuracao do framework ou de componentes.
 
     Levantar quando o YAML da DAG for invalido, faltarem variaveis de
     ambiente ou o manifesto do componente estiver malformado.
+
+    Heranca dupla deliberada (Especificacao Tecnica ID 1.4, Secao 5.2 —
+    Principio da Falha Explicita): alem de ``FrameworkError`` (captura
+    polimorfica pelo Involucre de Gestao), a classe tambem e ``ValueError``,
+    pois violacoes de schema/contrato sao semanticamente erros de valor.
+    Isso permite que consumidores do parser capturem falhas de carregamento
+    tanto por ``except FrameworkError`` quanto por ``except ValueError``.
 
     Attributes:
         message: Mensagem legivel do erro (str).
