@@ -1,0 +1,59 @@
+# framework/core/dags/health_check.yaml
+#
+# Core DAG 2/4 - Disponibilidade (Especificacao Tecnica ID 1.4, Secao 4.4).
+#
+# Finalidade: verificar a saude de todos os componentes registrados
+# (conectividade, recursos, dependencias externas) e gerar relatorio
+# estruturado.
+dag:
+  id: core_health_check
+  description: "Verifica saude de todos os componentes registrados"
+  schedule: "*/5 * * * *"  # A cada 5 minutos
+  owner: framework
+  immutable: true  # Nao pode ser alterado pelo DEV
+
+tasks:
+  - id: check_component_connectivity
+    type: management.health.check_connectivity
+    config:
+      timeout_seconds: 10
+      retry_attempts: 3
+      retry_delay_seconds: 2
+
+  - id: check_component_resources
+    type: management.health.check_resources
+    depends_on: [check_component_connectivity]
+    config:
+      thresholds:
+        cpu_percent: 80
+        memory_percent: 85
+        disk_percent: 90
+        open_files: 1000
+
+  - id: check_component_dependencies
+    type: management.health.check_dependencies
+    depends_on: [check_component_connectivity]
+    config:
+      check_external_dependencies: true
+      check_database_connections: true
+      check_api_endpoints: true
+
+  - id: generate_health_report
+    type: management.health.generate_report
+    depends_on:
+      - check_component_resources
+      - check_component_dependencies
+    config:
+      report_format: json
+      include_details: true
+      store_in: health_check_history
+
+notifications:
+  on_failure:
+    - type: alert
+      channel: critical_alerts
+      severity: CRITICAL
+  on_warning:
+    - type: alert
+      channel: warning_alerts
+      severity: WARNING

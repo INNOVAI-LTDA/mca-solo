@@ -1,0 +1,60 @@
+# framework/core/dags/metrics_collection.yaml
+#
+# Core DAG 1/4 - Observabilidade (Especificacao Tecnica ID 1.4, Secao 4.3).
+#
+# Finalidade: coletar metricas padronizadas de todos os componentes
+# registrados, agrega-las em janela deslizante e expor as series via
+# endpoint Prometheus.
+#
+# Propriedades invariantes (Regra de Ouro da Issue 1.4):
+#   - owner: "framework"              (VAL-02)
+#   - immutable: true                 (VAL-01)
+#   - id com prefixo "core_"          (VAL-03)
+#   - localizacao em framework/core/dags/ (VAL-04, montagem :ro)
+#   - sem chaves "components" nem "pipeline" (exclusivas de App DAGs)
+dag:
+  id: core_metrics_collection
+  description: "Coleta metricas padronizadas de todos os componentes"
+  schedule: "*/1 * * * *"  # A cada minuto
+  owner: framework
+  immutable: true  # Nao pode ser alterado pelo DEV
+
+tasks:
+  - id: collect_component_metrics
+    type: management.metrics.collect
+    config:
+      metrics_to_collect:
+        - execution_count
+        - success_rate
+        - average_duration
+        - error_rate
+        - last_execution_timestamp
+      aggregation_window: 60  # segundos
+      storage_backend: prometheus
+
+  - id: aggregate_metrics
+    type: management.metrics.aggregate
+    depends_on: [collect_component_metrics]
+    config:
+      aggregation_functions:
+        - avg
+        - sum
+        - min
+        - max
+        - percentile_95
+      group_by: [component_id, metric_type]
+
+  - id: expose_metrics_endpoint
+    type: management.metrics.expose
+    depends_on: [aggregate_metrics]
+    config:
+      endpoint: "/metrics"
+      format: prometheus
+      port: 9090
+
+notifications:
+  on_failure:
+    - type: log
+      level: ERROR
+    - type: alert
+      channel: framework_alerts
