@@ -1,0 +1,51 @@
+# framework/core/dags/component_lifecycle.yaml
+#
+# Core DAG 3/4 - Controle (Especificacao Tecnica ID 1.4, Secao 4.5).
+#
+# Finalidade: gerenciar o ciclo de vida dos componentes (iniciar, parar,
+# reiniciar) de forma controlada e observavel. Este DAG e event-driven
+# (schedule null), acionado pelos eventos declarados em "triggers".
+dag:
+  id: core_component_lifecycle
+  description: "Gerencia ciclo de vida de componentes"
+  schedule: null  # Acionado por eventos
+  owner: framework
+  immutable: true  # Nao pode ser alterado pelo DEV
+
+triggers:
+  - event: component.start_requested
+    task: start_component
+  - event: component.stop_requested
+    task: stop_component
+  - event: component.restart_requested
+    task: restart_component
+
+tasks:
+  - id: start_component
+    type: management.lifecycle.start
+    config:
+      graceful_timeout_seconds: 30
+      health_check_after_start: true
+      health_check_timeout_seconds: 60
+
+  - id: stop_component
+    type: management.lifecycle.stop
+    config:
+      graceful_timeout_seconds: 30
+      force_stop_after_timeout: true
+      cleanup_temp_files: true
+
+  - id: restart_component
+    type: management.lifecycle.restart
+    config:
+      stop_first: true
+      start_after_stop: true
+      preserve_state: false
+
+notifications:
+  on_success:
+    - type: log
+      level: INFO
+  on_failure:
+    - type: alert
+      channel: framework_alerts

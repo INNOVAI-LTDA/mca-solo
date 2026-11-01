@@ -1,0 +1,41 @@
+# framework/core/dags/alerting.yaml
+#
+# Core DAG 4/4 - Reacao (Especificacao Tecnica ID 1.4, Secao 4.6).
+#
+# Finalidade: avaliar regras de alerta pre-definidas contra metricas
+# coletadas e disparar notificacoes multi-canal quando limiares sao
+# violados. Unica Core DAG com bloco "on_alert" em notifications.
+dag:
+  id: core_alerting
+  description: "Sistema de alertas do framework"
+  schedule: "*/2 * * * *"  # A cada 2 minutos
+  owner: framework
+  immutable: true  # Nao pode ser alterado pelo DEV
+
+tasks:
+  - id: evaluate_alert_rules
+    type: management.alerting.evaluate_rules
+    config:
+      rules:
+        - name: high_error_rate
+          condition: "error_rate > 0.05"
+          severity: HIGH
+          channels: [email, slack]
+        - name: high_latency
+          condition: "average_duration > 300"
+          severity: MEDIUM
+          channels: [slack]
+        - name: component_down
+          condition: "status == 'DOWN'"
+          severity: CRITICAL
+          channels: [email, slack, pagerduty]
+
+notifications:
+  on_failure:
+    - type: log
+      level: ERROR
+    - type: alert
+      channel: framework_alerts
+  on_alert:
+    - type: log
+      level: WARNING
