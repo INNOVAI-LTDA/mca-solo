@@ -208,7 +208,13 @@ class DAGParser:
         path = Path(yaml_file)
         data = self._load_yaml(path)
         dag = self._build_definition(data, path)
-        self._validate_definition(dag, is_core=self._is_core_source(path))
+        # VAL-04 (caso direto): um id com prefixo core_ materializado FORA do
+        # diretorio de Core DAGs e uma violacao de localizacao fisica — o
+        # carregamento deve falhar explicitamente, mesmo em parse individual.
+        if isinstance(dag.id, str) and dag.id.startswith(CORE_DAG_PREFIX):
+            self._validate_definition(dag, is_core=True)
+        else:
+            self._validate_definition(dag, is_core=self._is_core_source(path))
         return dag
 
     def get_core_dags(self) -> Dict[str, DAGDefinition]:
