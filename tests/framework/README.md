@@ -534,7 +534,7 @@ pytest tests/ -v \
     if ($LastExitCode -ne 0) { return }
     pytest --cov=framework.core.exceptions --cov=framework.core.entities --cov=framework.core.ports --cov=framework.execution.parser --cov-report=term-missing tests\framework\
     if ($LastExitCode -ne 0) { return }
-    mypy framework\core\exceptions.py framework\core\entities.py framework\core\ports.py
+    mypy --explicit-package-bases framework\core\exceptions.py framework\core\entities.py framework\core\ports.py
     if ($LastExitCode -ne 0) { return }
     black --check framework\ tests\framework\
     if ($LastExitCode -ne 0) { return }

@@ -43,7 +43,6 @@ tasks:
         - max
         - percentile_95
       group_by: [component_id, metric_type]
-
   - id: expose_metrics_endpoint
     type: management.metrics.expose
     depends_on: [aggregate_metrics]

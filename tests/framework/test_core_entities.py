@@ -17,7 +17,6 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import FrozenInstanceError
 from datetime import datetime
-from typing import List, Type
 
 import pytest
 
@@ -352,7 +351,7 @@ class TestComponentMetricsGestao:
 
     def test_entidades_de_dominio_sao_dataclasses_frozen(self) -> None:
         """Barreira estrutural: todas as 4 entidades usam ``frozen=True``."""
-        classes: List[Type[object]] = [
+        classes: list[type[object]] = [
             FetchResult,
             IngestResult,
             ValidationResult,
@@ -362,5 +361,5 @@ class TestComponentMetricsGestao:
             assert dataclasses.is_dataclass(cls)
             params = dataclasses.fields(cls)  # smoke: e dataclass materializada
             assert len(params) > 0
-            frozen = getattr(cls, "__dataclass_params__").frozen
+            frozen = cls.__dataclass_params__.frozen
             assert frozen is True

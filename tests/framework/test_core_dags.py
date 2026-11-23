@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 import pytest
 import yaml
@@ -63,7 +63,7 @@ CORE_DAGS_DIR: Path = PROJECT_ROOT / "framework" / "core" / "dags"
 APP_DAGS_DIR: Path = PROJECT_ROOT / "application" / "dags"
 
 #: Conjunto fechado das quatro Core DAGs exigidas pela Issue 1.4.
-EXPECTED_CORE_DAG_FILES: Tuple[str, ...] = (
+EXPECTED_CORE_DAG_FILES: tuple[str, ...] = (
     "metrics_collection.yaml",
     "health_check.yaml",
     "component_lifecycle.yaml",
@@ -71,7 +71,7 @@ EXPECTED_CORE_DAG_FILES: Tuple[str, ...] = (
 )
 
 #: Mapa arquivo -> id esperado (espaco de nomes ``core_*``).
-EXPECTED_IDS: Dict[str, str] = {
+EXPECTED_IDS: dict[str, str] = {
     "metrics_collection.yaml": "core_metrics_collection",
     "health_check.yaml": "core_health_check",
     "component_lifecycle.yaml": "core_component_lifecycle",
@@ -79,7 +79,7 @@ EXPECTED_IDS: Dict[str, str] = {
 }
 
 #: Mapa arquivo -> schedule esperado (Secoes 4.3 a 4.6).
-EXPECTED_SCHEDULES: Dict[str, Any] = {
+EXPECTED_SCHEDULES: dict[str, Any] = {
     "metrics_collection.yaml": "*/1 * * * *",
     "health_check.yaml": "*/5 * * * *",
     "component_lifecycle.yaml": None,  # event-driven
@@ -87,10 +87,10 @@ EXPECTED_SCHEDULES: Dict[str, Any] = {
 }
 
 #: Chaves top-level obrigatorias (Secao 4.1, item 1).
-REQUIRED_TOP_KEYS: Tuple[str, ...] = ("dag", "tasks", "notifications")
+REQUIRED_TOP_KEYS: tuple[str, ...] = ("dag", "tasks", "notifications")
 
 #: Sub-chaves obrigatorias de ``dag`` (Secao 4.1, item 2).
-REQUIRED_DAG_KEYS: Tuple[str, ...] = (
+REQUIRED_DAG_KEYS: tuple[str, ...] = (
     "id",
     "description",
     "schedule",
@@ -99,10 +99,10 @@ REQUIRED_DAG_KEYS: Tuple[str, ...] = (
 )
 
 #: Chaves exclusivas de App DAGs — proibidas em Core DAGs (Secao 4.1, item 8).
-FORBIDDEN_CORE_KEYS: Tuple[str, ...] = ("components", "pipeline")
+FORBIDDEN_CORE_KEYS: tuple[str, ...] = ("components", "pipeline")
 
 #: Manifestos inspecionados para o criterio CC-03 (montagem ``:ro``).
-DEPLOYMENT_MANIFESTS: Tuple[str, ...] = (
+DEPLOYMENT_MANIFESTS: tuple[str, ...] = (
     "deployment/docker-compose.yml",
     "deployment/kubernetes/configmaps.yaml",
     "framework/infrastructure/docker-compose.framework.yml",
@@ -115,12 +115,12 @@ DEPLOYMENT_MANIFESTS: Tuple[str, ...] = (
 # ---------------------------------------------------------------------------
 
 
-def _core_paths() -> List[Path]:
+def _core_paths() -> list[Path]:
     """Lista ordenada os quatro arquivos de Core DAGs esperados."""
     return [CORE_DAGS_DIR / name for name in EXPECTED_CORE_DAG_FILES]
 
 
-def _load(path: Path) -> Dict[str, Any]:
+def _load(path: Path) -> dict[str, Any]:
     """Carrega um YAML de teste com ``safe_load`` e exige mapeamento na raiz."""
     with open(path, "r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle)
@@ -128,15 +128,15 @@ def _load(path: Path) -> Dict[str, Any]:
     return data
 
 
-def _dependency_graph(document: Dict[str, Any]) -> Dict[str, List[str]]:
+def _dependency_graph(document: dict[str, Any]) -> dict[str, list[str]]:
     """Constrói o grafo ``tarefa -> dependencias`` a partir de ``depends_on``."""
-    graph: Dict[str, List[str]] = {}
+    graph: dict[str, list[str]] = {}
     for task in document.get("tasks", []):
         graph[task["id"]] = list(task.get("depends_on") or [])
     return graph
 
 
-def _has_cycle(graph: Dict[str, List[str]]) -> bool:
+def _has_cycle(graph: dict[str, list[str]]) -> bool:
     """Detecta ciclo em grafo dirigido via DFS com marcacao (branco/cinza/preto).
 
     Args:
@@ -146,7 +146,7 @@ def _has_cycle(graph: Dict[str, List[str]]) -> bool:
         ``True`` se houver ao menos um ciclo.
     """
     white, gray, black = 0, 1, 2
-    color: Dict[str, int] = {node: white for node in graph}
+    color: dict[str, int] = {node: white for node in graph}
 
     def visit(node: str) -> bool:
         if color[node] == gray:
@@ -163,7 +163,7 @@ def _has_cycle(graph: Dict[str, List[str]]) -> bool:
     return any(color[node] == white and visit(node) for node in graph)
 
 
-def _valid_core_document(dag_id: str = "core_ok") -> Dict[str, Any]:
+def _valid_core_document(dag_id: str = "core_ok") -> dict[str, Any]:
     """Retorna um documento de Core DAG valido para mutacoes em testes.
 
     Args:
@@ -191,14 +191,14 @@ def _valid_core_document(dag_id: str = "core_ok") -> Dict[str, Any]:
     }
 
 
-def _write_yaml(path: Path, document: Dict[str, Any]) -> None:
+def _write_yaml(path: Path, document: dict[str, Any]) -> None:
     """Serializa um documento YAML em disco (UTF-8, sem reordenação)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
         yaml.safe_dump(document, handle, sort_keys=False, allow_unicode=True)
 
 
-def _make_parser(tmp_path: Path, core_docs: Dict[str, Dict[str, Any]]) -> DAGParser:
+def _make_parser(tmp_path: Path, core_docs: dict[str, dict[str, Any]]) -> DAGParser:
     """Escreve documentos YAML em diretorio temporario e cria o parser.
 
     Args:
@@ -221,19 +221,19 @@ def _make_parser(tmp_path: Path, core_docs: Dict[str, Dict[str, Any]]) -> DAGPar
 # Inventario carregado uma unica vez (module-level, deterministico)
 # ---------------------------------------------------------------------------
 
-CORE_DOCUMENTS: Dict[str, Dict[str, Any]] = {
+CORE_DOCUMENTS: dict[str, dict[str, Any]] = {
     name: _load(CORE_DAGS_DIR / name) for name in EXPECTED_CORE_DAG_FILES
 }
 
-ALL_FILE_PARAMS: Tuple[Tuple[str, Dict[str, Any]], ...] = tuple(
+ALL_FILE_PARAMS: tuple[tuple[str, dict[str, Any]], ...] = tuple(
     (name, CORE_DOCUMENTS[name]) for name in EXPECTED_CORE_DAG_FILES
 )
 
-PARAM_IDS: Tuple[str, ...] = tuple(name for name, _ in ALL_FILE_PARAMS)
+PARAM_IDS: tuple[str, ...] = tuple(name for name, _ in ALL_FILE_PARAMS)
 
 
 @pytest.fixture(scope="module")
-def parsed_registry() -> Dict[str, DAGDefinition]:
+def parsed_registry() -> dict[str, DAGDefinition]:
     """Registro unificado produzido pelo parser real do repositorio."""
     parser = DAGParser(str(CORE_DAGS_DIR), str(APP_DAGS_DIR))
     return parser.parse_all()
@@ -268,9 +268,9 @@ class TestExistenciaLocalizacao:
         """Separacao fisica: App DAGs jamais declaram imutabilidade."""
         for path in APP_DAGS_DIR.glob("*.yaml"):
             texto = path.read_text(encoding="utf-8")
-            assert "immutable: true" not in texto, (
-                f"App DAG {path.name} declara immutable: true"
-            )
+            assert (
+                "immutable: true" not in texto
+            ), f"App DAG {path.name} declara immutable: true"
 
     def test_lista_de_caminhos_auxiliar(self) -> None:
         assert len(_core_paths()) == 4
@@ -286,12 +286,12 @@ class TestSchemaYaml:
     """Secao 6.2 — parse YAML e chaves obrigatorias (VAL-05)."""
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_chaves_top_level(self, name: str, document: Dict[str, Any]) -> None:
+    def test_chaves_top_level(self, name: str, document: dict[str, Any]) -> None:
         for key in REQUIRED_TOP_KEYS:
             assert key in document, f"{name}: chave top-level '{key}' ausente"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_sub_chaves_de_dag(self, name: str, document: Dict[str, Any]) -> None:
+    def test_sub_chaves_de_dag(self, name: str, document: dict[str, Any]) -> None:
         dag_meta = document["dag"]
         assert isinstance(dag_meta, dict)
         for key in REQUIRED_DAG_KEYS:
@@ -299,29 +299,29 @@ class TestSchemaYaml:
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_tasks_sao_lista_de_mapas(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         tasks = document["tasks"]
-        assert isinstance(tasks, list) and tasks, (
-            f"{name}: tasks deve ser lista nao vazia"
-        )
+        assert (
+            isinstance(tasks, list) and tasks
+        ), f"{name}: tasks deve ser lista nao vazia"
         for task in tasks:
             assert isinstance(task, dict)
             for key in ("id", "type", "config"):
                 assert key in task, f"{name}: tarefa {task} sem chave '{key}'"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_notifications_e_mapa(self, name: str, document: Dict[str, Any]) -> None:
+    def test_notifications_e_mapa(self, name: str, document: dict[str, Any]) -> None:
         notifications = document["notifications"]
         assert isinstance(notifications, dict)
         permitidos = {"on_failure", "on_success", "on_warning", "on_alert"}
-        assert set(notifications) <= permitidos, (
-            f"{name}: evento de notificacao fora do contrato"
-        )
+        assert (
+            set(notifications) <= permitidos
+        ), f"{name}: evento de notificacao fora do contrato"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_sem_chaves_exclusivas_de_app_dag(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         """Secao 4.1 item 8: Core DAGs nao declaram components/pipeline."""
         for key in FORBIDDEN_CORE_KEYS:
@@ -329,13 +329,13 @@ class TestSchemaYaml:
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_id_corresponde_ao_esperado(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         assert document["dag"]["id"] == EXPECTED_IDS[name]
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_schedule_corresponde_ao_esperado(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         assert document["dag"]["schedule"] == EXPECTED_SCHEDULES[name]
 
@@ -359,9 +359,9 @@ class TestSchemaYaml:
         for name in EXPECTED_CORE_DAG_FILES:
             if name == "component_lifecycle.yaml":
                 continue
-            assert "triggers" not in CORE_DOCUMENTS[name], (
-                f"{name}: bloco 'triggers' so e permitido em component_lifecycle"
-            )
+            assert (
+                "triggers" not in CORE_DOCUMENTS[name]
+            ), f"{name}: bloco 'triggers' so e permitido em component_lifecycle"
 
 
 # ---------------------------------------------------------------------------
@@ -374,22 +374,22 @@ class TestPropriedadesInvariantes:
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_immutable_e_booleano_true(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         immutable = document["dag"]["immutable"]
         assert immutable is True, f"{name}: dag.immutable deve ser True literal"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_owner_e_framework(self, name: str, document: Dict[str, Any]) -> None:
-        assert document["dag"]["owner"] == CORE_OWNER, (
-            f"{name}: dag.owner deve ser 'framework'"
-        )
+    def test_owner_e_framework(self, name: str, document: dict[str, Any]) -> None:
+        assert (
+            document["dag"]["owner"] == CORE_OWNER
+        ), f"{name}: dag.owner deve ser 'framework'"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_id_tem_prefixo_core(self, name: str, document: Dict[str, Any]) -> None:
-        assert document["dag"]["id"].startswith(CORE_DAG_PREFIX), (
-            f"{name}: dag.id deve comecar com 'core_'"
-        )
+    def test_id_tem_prefixo_core(self, name: str, document: dict[str, Any]) -> None:
+        assert document["dag"]["id"].startswith(
+            CORE_DAG_PREFIX
+        ), f"{name}: dag.id deve comecar com 'core_'"
 
     def test_ids_sao_unicos_no_conjunto(self) -> None:
         ids = [doc["dag"]["id"] for doc in CORE_DOCUMENTS.values()]
@@ -413,9 +413,9 @@ class TestDisjuncaoDeIds:
     """Secao 6.4 — intersecao vazia entre espacos core/app (VAL-08/CC-05)."""
 
     @staticmethod
-    def _app_ids() -> Set[str]:
+    def _app_ids() -> set[str]:
         """Coleta ids declarados nas App DAGs (ignora arquivos vazios)."""
-        ids: Set[str] = set()
+        ids: set[str] = set()
         for path in APP_DAGS_DIR.glob("*.yaml"):
             data = yaml.safe_load(path.read_text(encoding="utf-8"))
             if isinstance(data, dict) and isinstance(data.get("dag"), dict):
@@ -436,9 +436,9 @@ class TestDisjuncaoDeIds:
     def test_app_dags_vazias_para_issue_1_5(self) -> None:
         """Os YAMLs de aplicacao seguem vazios (escopo da Issue 1.5)."""
         for path in APP_DAGS_DIR.glob("*.yaml"):
-            assert path.stat().st_size == 0, (
-                f"{path.name} preenchido fora do escopo da Issue 1.4"
-            )
+            assert (
+                path.stat().st_size == 0
+            ), f"{path.name} preenchido fora do escopo da Issue 1.4"
 
 
 # ---------------------------------------------------------------------------
@@ -450,35 +450,33 @@ class TestAciclicidade:
     """Secao 6.5 — grafo ``depends_on`` acíclico (VAL-06/CO-01)."""
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_grafo_aciclico_por_dfs(
-        self, name: str, document: Dict[str, Any]
-    ) -> None:
+    def test_grafo_aciclico_por_dfs(self, name: str, document: dict[str, Any]) -> None:
         graph = _dependency_graph(document)
         assert not _has_cycle(graph), f"{name}: ciclo detectado em depends_on"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_dependencias_existem(self, name: str, document: Dict[str, Any]) -> None:
+    def test_dependencias_existem(self, name: str, document: dict[str, Any]) -> None:
         graph = _dependency_graph(document)
-        known: Set[str] = set(graph)
+        known: set[str] = set(graph)
         for task_id, deps in graph.items():
             unknown = [dep for dep in deps if dep not in known]
             assert not unknown, f"{name}: tarefa {task_id} depende de {unknown}"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_ordem_topologica_respeita_lista(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         """Dependencias devem preceder a tarefa na lista ordenada de ``tasks``."""
         order = {task["id"]: idx for idx, task in enumerate(document["tasks"])}
         for task_id, deps in _dependency_graph(document).items():
             for dep in deps:
-                assert order[dep] < order[task_id], (
-                    f"{name}: dependencia {dep} declarada depois de {task_id}"
-                )
+                assert (
+                    order[dep] < order[task_id]
+                ), f"{name}: dependencia {dep} declarada depois de {task_id}"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_aciclicidade_via_networkx(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         """Reconfirmacao independente com networkx quando instalado."""
         nx = pytest.importorskip("networkx")
@@ -505,25 +503,25 @@ class TestTiposDeTarefa:
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_tipos_possuem_prefixo_management(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         for task in document["tasks"]:
-            assert task["type"].startswith("management."), (
-                f"{name}: tarefa {task['id']} com tipo {task['type']}"
-            )
+            assert task["type"].startswith(
+                "management."
+            ), f"{name}: tarefa {task['id']} com tipo {task['type']}"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_tipos_pertencem_ao_conjunto_valido(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         for task in document["tasks"]:
-            assert task["type"] in MANAGEMENT_TASK_TYPES, (
-                f"{name}: tipo fora do conjunto da Secao 4.7: {task['type']}"
-            )
+            assert (
+                task["type"] in MANAGEMENT_TASK_TYPES
+            ), f"{name}: tipo fora do conjunto da Secao 4.7: {task['type']}"
 
     def test_todos_os_tipos_do_contrato_estao_materializados(self) -> None:
         """A Secao 4.7 define 11 tipos; os quatro DAGs os cobrem integralmente."""
-        usados: Set[str] = {
+        usados: set[str] = {
             task["type"] for doc in CORE_DOCUMENTS.values() for task in doc["tasks"]
         }
         assert usados == set(MANAGEMENT_TASK_TYPES)
@@ -552,29 +550,29 @@ class TestNotificacoes:
     """Secao 6.7 — ``on_failure`` obrigatorio e canais permitidos."""
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_on_failure_presente(self, name: str, document: Dict[str, Any]) -> None:
+    def test_on_failure_presente(self, name: str, document: dict[str, Any]) -> None:
         on_failure = document["notifications"].get("on_failure")
-        assert isinstance(on_failure, list) and on_failure, (
-            f"{name}: notificacoes on_failure obrigatorias (falha explicita)"
-        )
+        assert (
+            isinstance(on_failure, list) and on_failure
+        ), f"{name}: notificacoes on_failure obrigatorias (falha explicita)"
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_canais_do_conjunto_permitido(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         for evento, canais in document["notifications"].items():
             assert isinstance(canais, list), f"{name}: {evento} deve ser lista"
             for canal in canais:
-                assert isinstance(canal, dict) and "type" in canal, (
-                    f"{name}: canal malformado em {evento}"
-                )
-                assert canal["type"] in NOTIFICATION_CHANNELS, (
-                    f"{name}: canal '{canal['type']}' nao permitido"
-                )
+                assert (
+                    isinstance(canal, dict) and "type" in canal
+                ), f"{name}: canal malformado em {evento}"
+                assert (
+                    canal["type"] in NOTIFICATION_CHANNELS
+                ), f"{name}: canal '{canal['type']}' nao permitido"
 
     def test_canais_usados_sao_subconjunto_permittido(self) -> None:
         """Somente {log, alert} aparecem hoje; webhook segue permitido."""
-        usados: Set[str] = {
+        usados: set[str] = {
             canal["type"]
             for doc in CORE_DOCUMENTS.values()
             for canais in doc["notifications"].values()
@@ -600,11 +598,11 @@ class TestNotificacoes:
 class TestIntegracaoParser:
     """Secao 6.8 — carregamento pelo parser unificado (CC-01/CC-09)."""
 
-    def test_parse_all_executa(self, parsed_registry: Dict[str, DAGDefinition]) -> None:
+    def test_parse_all_executa(self, parsed_registry: dict[str, DAGDefinition]) -> None:
         assert len(parsed_registry) >= 4
 
     def test_quatro_core_dags_no_registro_unificado(
-        self, parsed_registry: Dict[str, DAGDefinition]
+        self, parsed_registry: dict[str, DAGDefinition]
     ) -> None:
         for dag_id in EXPECTED_IDS.values():
             assert dag_id in parsed_registry, f"{dag_id} ausente no registro"
@@ -617,7 +615,7 @@ class TestIntegracaoParser:
         assert len(core) == 4
 
     def test_imutabilidade_preservada_no_objeto(
-        self, parsed_registry: Dict[str, DAGDefinition]
+        self, parsed_registry: dict[str, DAGDefinition]
     ) -> None:
         for dag_id, dag in parsed_registry.items():
             if dag_id.startswith(CORE_DAG_PREFIX):
@@ -626,7 +624,7 @@ class TestIntegracaoParser:
                 assert dag.is_core is True
 
     def test_metadados_yaml_preservados(
-        self, parsed_registry: Dict[str, DAGDefinition]
+        self, parsed_registry: dict[str, DAGDefinition]
     ) -> None:
         dag = parsed_registry["core_metrics_collection"]
         assert dag.description == (
@@ -640,7 +638,7 @@ class TestIntegracaoParser:
         ]
 
     def test_schedule_null_event_driven(
-        self, parsed_registry: Dict[str, DAGDefinition]
+        self, parsed_registry: dict[str, DAGDefinition]
     ) -> None:
         lifecycle = parsed_registry["core_component_lifecycle"]
         assert lifecycle.schedule is None
@@ -923,9 +921,7 @@ class TestConformidadeInfraestrutura:
             pytest.skip(f"manifesto ainda nao entregue: {manifest}")
         texto = path.read_text(encoding="utf-8")
         if "framework/core/dags" in texto:
-            assert ":ro" in texto, (
-                f"{manifest}: montagem de Core DAGs deve usar ':ro'"
-            )
+            assert ":ro" in texto, f"{manifest}: montagem de Core DAGs deve usar ':ro'"
 
     def test_yamllint_relaxado_se_disponivel(self) -> None:
         """Secao 7: yamllint -d relaxed framework/core/dags/ (quando instalado)."""
@@ -953,7 +949,7 @@ class TestHigieneArtefatos:
     """Qualidade dos YAMLs entregues (Secoes 8.3 e 8.5)."""
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
-    def test_ascii_puro(self, name: str, document: Dict[str, Any]) -> None:
+    def test_ascii_puro(self, name: str, document: dict[str, Any]) -> None:
         """Sem acentos: consistencia com os docs e seguranca de encoding."""
         raw = (CORE_DAGS_DIR / name).read_bytes()
         assert all(byte < 0x80 for byte in raw), f"{name}: bytes nao-ASCII"
@@ -961,7 +957,7 @@ class TestHigieneArtefatos:
 
     @pytest.mark.parametrize("name,document", ALL_FILE_PARAMS, ids=PARAM_IDS)
     def test_primeira_linha_identifica_origem(
-        self, name: str, document: Dict[str, Any]
+        self, name: str, document: dict[str, Any]
     ) -> None:
         """Rastreabilidade: cabecalho com o caminho do artefato."""
         primeira = (CORE_DAGS_DIR / name).read_text(encoding="utf-8").splitlines()[0]
@@ -975,9 +971,9 @@ class TestHigieneArtefatos:
 
     def test_description_nao_usa_acentos(self) -> None:
         for name, document in CORE_DOCUMENTS.items():
-            assert document["dag"]["description"].isascii(), (
-                f"{name}: descricao com caracteres nao-ASCII"
-            )
+            assert document["dag"][
+                "description"
+            ].isascii(), f"{name}: descricao com caracteres nao-ASCII"
 
     def test_inventario_de_teste_e_autodescritivo(self) -> None:
         """O modulo expoe o inventario usado pelos parametrizados."""

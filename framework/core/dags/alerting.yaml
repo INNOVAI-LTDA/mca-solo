@@ -29,7 +29,6 @@ tasks:
           condition: "status == 'DOWN'"
           severity: CRITICAL
           channels: [email, slack, pagerduty]
-
 notifications:
   on_failure:
     - type: log

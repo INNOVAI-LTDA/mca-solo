@@ -37,9 +37,9 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 def _utcnow() -> datetime:
@@ -54,7 +54,7 @@ def _utcnow() -> datetime:
     Returns:
         O ``datetime`` atual em UTC (timezone-aware).
     """
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class ComponentStatus(str, Enum):
@@ -119,9 +119,9 @@ class FetchResult:
         1
     """
 
-    items: List[Any]
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    errors: List[Dict[str, Any]] = field(default_factory=list)
+    items: list[Any]
+    metadata: dict[str, Any] = field(default_factory=dict)
+    errors: list[dict[str, Any]] = field(default_factory=list)
     fetched_at: datetime = field(default_factory=_utcnow)
 
     @property
@@ -143,8 +143,8 @@ class FetchResult:
         return len(self.errors) > 0
 
     def with_error(
-        self, erro: str, contexto: Optional[Dict[str, Any]] = None
-    ) -> "FetchResult":
+        self, erro: str, contexto: dict[str, Any] | None = None
+    ) -> FetchResult:
         """Retorna uma NOVA instancia com o erro adicionado (copia defensiva).
 
         IMPORTANTE: este metodo NAO modifica a instancia atual. Como a
@@ -174,12 +174,12 @@ class FetchResult:
             >>> r2.errors[0]["error"]
             'Timeout'
         """
-        registro: Dict[str, Any] = {
+        registro: dict[str, Any] = {
             "error": erro,
             "context": dict(contexto) if contexto else {},
             "timestamp": _utcnow().isoformat(),
         }
-        novas_errors: List[Dict[str, Any]] = list(self.errors) + [registro]
+        novas_errors: list[dict[str, Any]] = list(self.errors) + [registro]
         return dataclasses.replace(self, errors=novas_errors)
 
 
@@ -217,8 +217,8 @@ class IngestResult:
 
     success_count: int = 0
     failure_count: int = 0
-    ingested_ids: List[Any] = field(default_factory=list)
-    errors: List[Any] = field(default_factory=list)
+    ingested_ids: list[Any] = field(default_factory=list)
+    errors: list[Any] = field(default_factory=list)
     ingested_at: datetime = field(default_factory=_utcnow)
 
     @property
@@ -274,7 +274,7 @@ class ValidationResult:
     """
 
     is_valid: bool
-    violations: List[Dict[str, Any]] = field(default_factory=list)
+    violations: list[dict[str, Any]] = field(default_factory=list)
     validated_at: datetime = field(default_factory=_utcnow)
 
     def __post_init__(self) -> None:
@@ -354,5 +354,5 @@ class ComponentMetrics:
     success_rate: float = 0.0
     average_duration: float = 0.0
     error_rate: float = 0.0
-    last_execution: Optional[datetime] = None
+    last_execution: datetime | None = None
     status: ComponentStatus = ComponentStatus.PRONTO

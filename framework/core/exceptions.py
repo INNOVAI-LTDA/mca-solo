@@ -26,7 +26,7 @@ Classes expostas:
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class FrameworkError(Exception):
@@ -62,8 +62,8 @@ class FrameworkError(Exception):
     def __init__(
         self,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        cause: Optional[BaseException] = None,
+        context: dict[str, Any] | None = None,
+        cause: BaseException | None = None,
     ) -> None:
         """Inicializa a excecao base do framework.
 
@@ -76,8 +76,8 @@ class FrameworkError(Exception):
         """
         super().__init__(message)
         self._message: str = message
-        self._context: Dict[str, Any] = copy.deepcopy(context) if context else {}
-        self._cause: Optional[BaseException] = cause
+        self._context: dict[str, Any] = copy.deepcopy(context) if context else {}
+        self._cause: BaseException | None = cause
         # Encadeamento explicito: preserva o traceback original e da suporte
         # nativo ao padrao `raise ... from ...` do Python.
         if cause is not None:
@@ -89,12 +89,12 @@ class FrameworkError(Exception):
         return self._message
 
     @property
-    def context(self) -> Dict[str, Any]:
+    def context(self) -> dict[str, Any]:
         """Retorna o dicionario de metadados (apenas leitura, copia defensiva)."""
         return self._context
 
     @property
-    def cause(self) -> Optional[BaseException]:
+    def cause(self) -> BaseException | None:
         """Retorna a excecao original encadeada (apenas leitura)."""
         return self._cause
 
@@ -138,8 +138,8 @@ class ConfigurationError(FrameworkError, ValueError):
     def __init__(
         self,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        cause: Optional[BaseException] = None,
+        context: dict[str, Any] | None = None,
+        cause: BaseException | None = None,
     ) -> None:
         """Inicializa o erro de configuracao.
 
@@ -178,8 +178,8 @@ class FetcherError(FrameworkError):
     def __init__(
         self,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        cause: Optional[BaseException] = None,
+        context: dict[str, Any] | None = None,
+        cause: BaseException | None = None,
     ) -> None:
         """Inicializa o erro de fetch.
 
@@ -218,8 +218,8 @@ class IngestorError(FrameworkError):
     def __init__(
         self,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        cause: Optional[BaseException] = None,
+        context: dict[str, Any] | None = None,
+        cause: BaseException | None = None,
     ) -> None:
         """Inicializa o erro de ingestao.
 
@@ -258,8 +258,8 @@ class TransformerError(FrameworkError):
     def __init__(
         self,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        cause: Optional[BaseException] = None,
+        context: dict[str, Any] | None = None,
+        cause: BaseException | None = None,
     ) -> None:
         """Inicializa o erro de transformacao.
 
@@ -298,8 +298,8 @@ class ValidationError(FrameworkError):
     def __init__(
         self,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        cause: Optional[BaseException] = None,
+        context: dict[str, Any] | None = None,
+        cause: BaseException | None = None,
     ) -> None:
         """Inicializa o erro de validacao.
 
@@ -313,9 +313,9 @@ class ValidationError(FrameworkError):
 
 
 __all__ = [
-    "FrameworkError",
     "ConfigurationError",
     "FetcherError",
+    "FrameworkError",
     "IngestorError",
     "TransformerError",
     "ValidationError",

@@ -54,7 +54,7 @@ Compatibilidade futura: as ABCs serão envolvidas pelo ``InvolucroGestao``
 from __future__ import annotations
 
 import abc
-from typing import Any, Dict, List
+from typing import Any
 
 from framework.core.entities import FetchResult, IngestResult, ValidationResult
 
@@ -89,7 +89,7 @@ class FetcherPort(abc.ABC):
     """
 
     @abc.abstractmethod
-    def buscar(self, config: Dict[str, Any]) -> FetchResult:
+    def buscar(self, config: dict[str, Any]) -> FetchResult:
         """Extrai dados da fonte externa.
 
         Args:
@@ -105,7 +105,7 @@ class FetcherPort(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def validar_config(self, config: Dict[str, Any]) -> bool:
+    def validar_config(self, config: dict[str, Any]) -> bool:
         """Valida se a configuracao e valida para este fetcher.
 
         Args:
@@ -121,7 +121,7 @@ class FetcherPort(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def metadados(self) -> Dict[str, Any]:
+    def metadados(self) -> dict[str, Any]:
         """Retorna metadados sobre o fetcher (versao, capacidades, etc.).
 
         Args:
@@ -189,7 +189,7 @@ class IngestPort(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def metadados(self) -> Dict[str, Any]:
+    def metadados(self) -> dict[str, Any]:
         """Retorna metadados sobre o ingestor.
 
         Args:
@@ -240,7 +240,7 @@ class TransformerPort(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def transformacoes(self) -> List[str]:
+    def transformacoes(self) -> list[str]:
         """Retorna lista de transformacoes aplicadas.
 
         Args:
@@ -277,7 +277,7 @@ class ValidatorPort(abc.ABC):
     """
 
     @abc.abstractmethod
-    def validar(self, dados: List[Dict[str, Any]]) -> ValidationResult:
+    def validar(self, dados: list[dict[str, Any]]) -> ValidationResult:
         """Valida dados contra regras de negocio.
 
         Args:
@@ -294,7 +294,7 @@ class ValidatorPort(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def regras(self) -> List[str]:
+    def regras(self) -> list[str]:
         """Retorna lista de regras que este validator aplica.
 
         Args:
@@ -330,7 +330,7 @@ class URNPort(abc.ABC):
     """
 
     @abc.abstractmethod
-    def gerar(self, dados: Dict[str, Any]) -> str:
+    def gerar(self, dados: dict[str, Any]) -> str:
         """Gera URN canonico a partir de dados.
 
         Args:
@@ -362,7 +362,7 @@ class URNPort(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def parsear(self, urn: str) -> Dict[str, Any]:
+    def parsear(self, urn: str) -> dict[str, Any]:
         """Faz parse de um URN em seus componentes.
 
         Args:

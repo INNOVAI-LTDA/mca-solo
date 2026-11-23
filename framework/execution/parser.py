@@ -41,7 +41,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import yaml
 
@@ -51,10 +51,10 @@ __all__ = [
     "CORE_DAG_PREFIX",
     "CORE_DAG_REQUIRED_KEYS",
     "CORE_OWNER",
-    "DAGDefinition",
-    "DAGParser",
     "MANAGEMENT_TASK_TYPES",
     "NOTIFICATION_CHANNELS",
+    "DAGDefinition",
+    "DAGParser",
 ]
 
 #: Prefixo obrigatorio do espaco de nomes das Core DAGs (VAL-03).
@@ -119,16 +119,16 @@ class DAGDefinition:
 
     id: str
     description: str
-    schedule: Optional[str]
+    schedule: str | None
     owner: str
     immutable: bool
-    tasks: List[Dict[str, Any]] = field(default_factory=list)
-    components: List[Dict[str, Any]] = field(default_factory=list)
-    pipeline: Dict[str, Any] = field(default_factory=dict)
-    connectors: List[Dict[str, Any]] = field(default_factory=list)
-    notifications: Dict[str, Any] = field(default_factory=dict)
-    triggers: List[Dict[str, Any]] = field(default_factory=list)
-    source_path: Optional[str] = None
+    tasks: list[dict[str, Any]] = field(default_factory=list)
+    components: list[dict[str, Any]] = field(default_factory=list)
+    pipeline: dict[str, Any] = field(default_factory=dict)
+    connectors: list[dict[str, Any]] = field(default_factory=list)
+    notifications: dict[str, Any] = field(default_factory=dict)
+    triggers: list[dict[str, Any]] = field(default_factory=list)
+    source_path: str | None = None
 
     @property
     def is_core(self) -> bool:
@@ -173,13 +173,13 @@ class DAGParser:
         self.framework_dags_dir: Path = Path(framework_dags_dir)
         self.app_dags_dir: Path = Path(app_dags_dir)
 
-        self.core_dags: Dict[str, DAGDefinition] = {}
-        self.app_dags: Dict[str, DAGDefinition] = {}
+        self.core_dags: dict[str, DAGDefinition] = {}
+        self.app_dags: dict[str, DAGDefinition] = {}
 
     # ------------------------------------------------------------------
     # API publica
     # ------------------------------------------------------------------
-    def parse_all(self) -> Dict[str, DAGDefinition]:
+    def parse_all(self) -> dict[str, DAGDefinition]:
         """Parseia todas as DAGs (Core + App) e retorna o registro unificado.
 
         Returns:
@@ -217,11 +217,11 @@ class DAGParser:
             self._validate_definition(dag, is_core=self._is_core_source(path))
         return dag
 
-    def get_core_dags(self) -> Dict[str, DAGDefinition]:
+    def get_core_dags(self) -> dict[str, DAGDefinition]:
         """Retorna copia do registro de Core DAGs ja parseadas."""
         return self.core_dags.copy()
 
-    def get_app_dags(self) -> Dict[str, DAGDefinition]:
+    def get_app_dags(self) -> dict[str, DAGDefinition]:
         """Retorna copia do registro de App DAGs ja parseadas."""
         return self.app_dags.copy()
 
@@ -274,7 +274,7 @@ class DAGParser:
     # Leitura e construcao
     # ------------------------------------------------------------------
     @staticmethod
-    def _iter_yaml_files(directory: Path) -> List[Path]:
+    def _iter_yaml_files(directory: Path) -> list[Path]:
         """Lista deterministicamente os arquivos YAML de um diretorio."""
         if not directory.is_dir():
             return []
@@ -282,7 +282,7 @@ class DAGParser:
         return sorted(set(files))
 
     @staticmethod
-    def _load_yaml(yaml_file: Path) -> Dict[str, Any]:
+    def _load_yaml(yaml_file: Path) -> dict[str, Any]:
         """Carrega um arquivo YAML com ``safe_load`` (falha explicita).
 
         Args:
@@ -335,7 +335,7 @@ class DAGParser:
         return resolved.parent == core_root or core_root in resolved.parents
 
     @staticmethod
-    def _build_definition(data: Dict[str, Any], yaml_file: Path) -> DAGDefinition:
+    def _build_definition(data: dict[str, Any], yaml_file: Path) -> DAGDefinition:
         """Constroi a ``DAGDefinition`` a partir do dicionario YAML bruto.
 
         Nao valida conteudo semantico - apenas extrai campos com defaults do
@@ -473,7 +473,7 @@ class DAGParser:
                 tipo fora de ``management.*``, dependencia inexistente ou
                 ciclo no grafo ``depends_on``.
         """
-        task_ids: Set[str] = set()
+        task_ids: set[str] = set()
         for task in dag.tasks:
             if not isinstance(task, dict):
                 raise ConfigurationError(
@@ -491,7 +491,9 @@ class DAGParser:
 
             # VAL-07: tipo deve pertencer ao vocabulario management.*
             task_type = task["type"]
-            if not isinstance(task_type, str) or not task_type.startswith("management."):
+            if not isinstance(task_type, str) or not task_type.startswith(
+                "management."
+            ):
                 raise ConfigurationError(
                     f"Core DAG {dag.id}: tarefa {task['id']} tem tipo invalido "
                     f"'{task_type}'; Core DAGs usam exclusivamente management.*",
@@ -520,12 +522,12 @@ class DAGParser:
                 )
 
         white, gray, black = 0, 1, 2
-        color: Dict[str, int] = {tid: white for tid in graph}
+        color: dict[str, int] = {tid: white for tid in graph}
 
-        def visit(node: str, trail: List[str]) -> None:
+        def visit(node: str, trail: list[str]) -> None:
             state = color[node]
             if state == gray:
-                cycle = trail[trail.index(node):] + [node]
+                cycle = trail[trail.index(node) :] + [node]
                 raise ConfigurationError(
                     f"Core DAG {dag.id}: ciclo detectado em depends_on: "
                     f"{' -> '.join(cycle)}",

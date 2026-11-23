@@ -11,7 +11,7 @@ Execucao:
     pytest --cov=framework.core.exceptions --cov-report=term-missing
 """
 
-from typing import Any, Dict, List, Type
+from typing import Any
 
 import pytest
 
@@ -25,7 +25,7 @@ from framework.core.exceptions import (
 )
 
 # Todas as classes concretas da hierarquia (base + 5 subclasses).
-ALL_EXCEPTION_CLASSES: List[Type[FrameworkError]] = [
+ALL_EXCEPTION_CLASSES: list[type[FrameworkError]] = [
     FrameworkError,
     ConfigurationError,
     FetcherError,
@@ -35,7 +35,7 @@ ALL_EXCEPTION_CLASSES: List[Type[FrameworkError]] = [
 ]
 
 # As 5 subclasses diretas da base.
-SUBCLASSES: List[Type[FrameworkError]] = [
+SUBCLASSES: list[type[FrameworkError]] = [
     ConfigurationError,
     FetcherError,
     IngestorError,
@@ -54,21 +54,21 @@ class TestInstanciacaoEContratos:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_instancia_apenas_com_message(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Todas as classes podem ser instanciadas apenas com `message`."""
         erro = exc_class("falha ocorreu")
         assert isinstance(erro, exc_class)
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_atributo_message_acessivel(self, exc_class: Type[FrameworkError]) -> None:
+    def test_atributo_message_acessivel(self, exc_class: type[FrameworkError]) -> None:
         """O atributo `message` e acessivel e corresponde ao valor passado."""
         erro = exc_class("mensagem legivel do erro")
         assert erro.message == "mensagem legivel do erro"
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_message_passada_ao_super_init(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """A mensagem deve estar presente em `args` (super().__init__)."""
         erro = exc_class("presente em args")
@@ -76,7 +76,7 @@ class TestInstanciacaoEContratos:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_context_padrao_e_dicionario_vazio(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Sem `context`, o padrao deve ser um dicionario vazio `{}`."""
         erro = exc_class("sem contexto")
@@ -85,21 +85,21 @@ class TestInstanciacaoEContratos:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_context_explicito_preservado(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Metadados fornecidos devem estar disponiveis na instancia."""
-        ctx: Dict[str, Any] = {"dag": "d1", "component": "senado_adapter"}
+        ctx: dict[str, Any] = {"dag": "d1", "component": "senado_adapter"}
         erro = exc_class("com contexto", context=ctx)
         assert erro.context == ctx
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_cause_padrao_e_none(self, exc_class: Type[FrameworkError]) -> None:
+    def test_cause_padrao_e_none(self, exc_class: type[FrameworkError]) -> None:
         """Sem `cause`, o atributo deve ser `None`."""
         erro = exc_class("sem causa")
         assert erro.cause is None
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_str_contem_mensagem(self, exc_class: Type[FrameworkError]) -> None:
+    def test_str_contem_mensagem(self, exc_class: type[FrameworkError]) -> None:
         """A representacao textual deve conter a mensagem do erro."""
         erro = exc_class("detalhe do erro")
         assert "detalhe do erro" in str(erro)
@@ -119,9 +119,9 @@ class TestImutabilidadeDoContexto:
     """Prova a copia defensiva e a exposicao read-only de `context`."""
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_copia_defensiva_externa(self, exc_class: Type[FrameworkError]) -> None:
+    def test_copia_defensiva_externa(self, exc_class: type[FrameworkError]) -> None:
         """Modificar o dict original apos a instancia nao altera o interno."""
-        ctx: Dict[str, Any] = {"key": "value"}
+        ctx: dict[str, Any] = {"key": "value"}
         erro = exc_class("imutabilidade", context=ctx)
         ctx["key"] = "changed"
         ctx["novo"] = "adicionado"
@@ -129,16 +129,16 @@ class TestImutabilidadeDoContexto:
         assert erro.context["key"] != "changed"
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
-    def test_copia_defensiva_profunda(self, exc_class: Type[FrameworkError]) -> None:
+    def test_copia_defensiva_profunda(self, exc_class: type[FrameworkError]) -> None:
         """Mutacao de objetos aninhados no original nao vaza para dentro."""
-        ctx: Dict[str, Any] = {"outer": {"inner": "valor"}}
+        ctx: dict[str, Any] = {"outer": {"inner": "valor"}}
         erro = exc_class("deep copy", context=ctx)
         ctx["outer"]["inner"] = "mutado"
         assert erro.context["outer"]["inner"] == "valor"
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_context_e_propriedade_read_only(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Tentar reatribuir `context` deve lancar AttributeError."""
         erro = exc_class("read only", context={"a": 1})
@@ -147,7 +147,7 @@ class TestImutabilidadeDoContexto:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_message_e_propriedade_read_only(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Tentar reatribuir `message` deve lancar AttributeError."""
         erro = exc_class("read only")
@@ -156,7 +156,7 @@ class TestImutabilidadeDoContexto:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_cause_e_propriedade_read_only(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Tentar reatribuir `cause` deve lancar AttributeError."""
         erro = exc_class("read only")
@@ -174,7 +174,7 @@ class TestHerancaECaptura:
 
     @pytest.mark.parametrize("exc_class", SUBCLASSES)
     def test_subclass_e_instancia_de_framework_error(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Todas as subclasses devem ser capturaveis como FrameworkError."""
         erro = exc_class("subclasse")
@@ -182,7 +182,7 @@ class TestHerancaECaptura:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_todas_sao_instancias_de_exception(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Toda a hierarquia herda de Exception."""
         erro = exc_class("qualquer")
@@ -190,7 +190,7 @@ class TestHerancaECaptura:
 
     @pytest.mark.parametrize("exc_class", SUBCLASSES)
     def test_heranca_direta_de_framework_error(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """Cada subclasse herda diretamente de FrameworkError."""
         assert issubclass(exc_class, FrameworkError)
@@ -206,7 +206,7 @@ class TestHerancaECaptura:
 
     def test_except_framework_error_capture_validation_error(self) -> None:
         """Um unico `except FrameworkError` captura ValidationError lancada."""
-        captured: List[FrameworkError] = []
+        captured: list[FrameworkError] = []
         try:
             raise ValidationError(
                 "violacao da invariante K2", context={"invariante": "K2"}
@@ -219,7 +219,7 @@ class TestHerancaECaptura:
 
     @pytest.mark.parametrize("exc_class", SUBCLASSES)
     def test_polimorfismo_captura_todas_subclasses(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """O Involucre de Gestao captura qualquer falha via bloco unico."""
         with pytest.raises(FrameworkError) as excinfo:
@@ -245,7 +245,7 @@ class TestEncadeamento:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_raise_from_preserva_traceback(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """`raise ... from original` deve setar __cause__ nativamente."""
         original = RuntimeError("rede caiu")
@@ -280,7 +280,7 @@ class TestEncadeamento:
 
     @pytest.mark.parametrize("exc_class", ALL_EXCEPTION_CLASSES)
     def test_args_contem_cause_para_classe_base(
-        self, exc_class: Type[FrameworkError]
+        self, exc_class: type[FrameworkError]
     ) -> None:
         """A causa deve ser propagada ao construtor nativo (via kwargs)."""
         original = KeyError("env_var")

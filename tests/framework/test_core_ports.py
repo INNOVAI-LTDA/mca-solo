@@ -25,8 +25,9 @@ import ast
 import inspect
 import re
 import textwrap
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Tuple, Type
+from typing import Any
 
 import pytest
 
@@ -49,7 +50,7 @@ from framework.core.ports import (
 # ---------------------------------------------------------------------------
 
 #: Tupla ``(nome_da_porta, classe_abstrata, methods_abstratos_esperados)``.
-PORT_INVENTORY: Tuple[Tuple[str, Type[abc.ABC], Tuple[str, ...]], ...] = (
+PORT_INVENTORY: tuple[tuple[str, type[abc.ABC], tuple[str, ...]], ...] = (
     ("FetcherPort", FetcherPort, ("buscar", "validar_config", "metadados")),
     ("IngestPort", IngestPort, ("ingerir", "validar_conexao", "metadados")),
     ("TransformerPort", TransformerPort, ("transformar", "transformacoes")),
@@ -57,9 +58,9 @@ PORT_INVENTORY: Tuple[Tuple[str, Type[abc.ABC], Tuple[str, ...]], ...] = (
     ("URNPort", URNPort, ("gerar", "validar", "parsear")),
 )
 
-ALL_PORT_CLASSES: Tuple[Type[abc.ABC], ...] = tuple(cls for _, cls, _ in PORT_INVENTORY)
+ALL_PORT_CLASSES: tuple[type[abc.ABC], ...] = tuple(cls for _, cls, _ in PORT_INVENTORY)
 
-PORT_NAMES: Tuple[str, ...] = tuple(name for name, _, _ in PORT_INVENTORY)
+PORT_NAMES: tuple[str, ...] = tuple(name for name, _, _ in PORT_INVENTORY)
 
 
 def _parametrize_ports(func: Any) -> Any:
@@ -81,7 +82,7 @@ def _parametrize_ports(func: Any) -> Any:
     )(func)
 
 
-def _corpo_sem_docstring(node: ast.FunctionDef) -> List[ast.stmt]:
+def _corpo_sem_docstring(node: ast.FunctionDef) -> list[ast.stmt]:
     """Retorna o corpo de ``node`` sem a docstring, se houver.
 
     Args:
@@ -109,16 +110,16 @@ def _corpo_sem_docstring(node: ast.FunctionDef) -> List[ast.stmt]:
 class StubFetcher(FetcherPort):
     """Implementação fictícia completa de ``FetcherPort``."""
 
-    def buscar(self, config: Dict[str, Any]) -> FetchResult:
+    def buscar(self, config: dict[str, Any]) -> FetchResult:
         return FetchResult(
             items=[{"id": 1, "config": dict(config)}],
             metadata={"source": "stub"},
         )
 
-    def validar_config(self, config: Dict[str, Any]) -> bool:
+    def validar_config(self, config: dict[str, Any]) -> bool:
         return "url" in config
 
-    def metadados(self) -> Dict[str, Any]:
+    def metadados(self) -> dict[str, Any]:
         return {"nome": "StubFetcher", "versao": "1.0.0"}
 
 
@@ -135,7 +136,7 @@ class StubIngestor(IngestPort):
     def validar_conexao(self) -> bool:
         return True
 
-    def metadados(self) -> Dict[str, Any]:
+    def metadados(self) -> dict[str, Any]:
         return {"nome": "StubIngestor", "backend": "memory"}
 
 
@@ -146,14 +147,14 @@ class StubTransformer(TransformerPort):
         novos_itens = [dict(item) for item in dados.items]
         return FetchResult(items=novos_itens, metadata=dict(dados.metadata))
 
-    def transformacoes(self) -> List[str]:
+    def transformacoes(self) -> list[str]:
         return ["normalizar", "enriquecer"]
 
 
 class StubValidator(ValidatorPort):
     """Implementação fictícia completa de ``ValidatorPort``."""
 
-    def validar(self, dados: List[Dict[str, Any]]) -> ValidationResult:
+    def validar(self, dados: list[dict[str, Any]]) -> ValidationResult:
         violacoes = [
             {"rule": "K1", "description": "item sem id"}
             for item in dados
@@ -161,7 +162,7 @@ class StubValidator(ValidatorPort):
         ]
         return ValidationResult(is_valid=len(violacoes) == 0, violations=violacoes)
 
-    def regras(self) -> List[str]:
+    def regras(self) -> list[str]:
         return ["K1", "K2", "K3"]
 
 
@@ -170,7 +171,7 @@ class StubURNGenerator(URNPort):
 
     _PATTERN = re.compile(r"^urn:lex:br:[a-z0-9_:;\.\-]+$")
 
-    def gerar(self, dados: Dict[str, Any]) -> str:
+    def gerar(self, dados: dict[str, Any]) -> str:
         return (
             f"urn:lex:br:{dados.get('jurisdicao', 'federal')}:"
             f"{dados.get('tipo', 'lei')}:{dados.get('data', '1988-10-05')}"
@@ -180,7 +181,7 @@ class StubURNGenerator(URNPort):
     def validar(self, urn: str) -> bool:
         return bool(self._PATTERN.match(urn))
 
-    def parsear(self, urn: str) -> Dict[str, Any]:
+    def parsear(self, urn: str) -> dict[str, Any]:
         partes = urn.split(":")
         return {
             "scheme": partes[0],
@@ -201,8 +202,8 @@ class TestBarreiraDeAbstracao:
     def test_instanciacao_direta_levanta_type_error(
         self,
         porta_nome: str,
-        porta_abstrata: Type[abc.ABC],
-        metodos_esperados: Tuple[str, ...],
+        porta_abstrata: type[abc.ABC],
+        metodos_esperados: tuple[str, ...],
     ) -> None:
         """``porta()`` deve levantar ``TypeError`` citando os abstract methods."""
         with pytest.raises(TypeError) as excinfo:
@@ -217,8 +218,8 @@ class TestBarreiraDeAbstracao:
     def test_classe_e_abc_com_metodos_abstratos(
         self,
         porta_nome: str,
-        porta_abstrata: Type[abc.ABC],
-        metodos_esperados: Tuple[str, ...],
+        porta_abstrata: type[abc.ABC],
+        metodos_esperados: tuple[str, ...],
     ) -> None:
         """Cada porta herda de ``abc.ABC`` e declara os métodos esperados."""
         assert issubclass(porta_abstrata, abc.ABC)
@@ -233,8 +234,8 @@ class TestBarreiraDeAbstracao:
     def test_todos_os_metodos_de_contrato_estao_decorados(
         self,
         porta_nome: str,
-        porta_abstrata: Type[abc.ABC],
-        metodos_esperados: Tuple[str, ...],
+        porta_abstrata: type[abc.ABC],
+        metodos_esperados: tuple[str, ...],
     ) -> None:
         """Cada método de contrato possui ``__isabstractmethod__ = True``."""
         for nome in metodos_esperados:
@@ -247,8 +248,8 @@ class TestBarreiraDeAbstracao:
     def test_corpos_dos_metodos_abstratos_nao_tem_logica(
         self,
         porta_nome: str,
-        porta_abstrata: Type[abc.ABC],
-        metodos_esperados: Tuple[str, ...],
+        porta_abstrata: type[abc.ABC],
+        metodos_esperados: tuple[str, ...],
     ) -> None:
         """Corpos dos abstratos contêm apenas docstring + ``...`` (Ellipsis)."""
         arvore = ast.parse(textwrap.dedent(inspect.getsource(porta_abstrata)))
@@ -278,7 +279,7 @@ class TestBarreiraDeAbstracao:
 class FetcherPortContractTests:
     """Mixin genérico de contrato para qualquer implementação de FetcherPort."""
 
-    stub_class: Type[FetcherPort]
+    stub_class: type[FetcherPort]
 
     @pytest.fixture
     def fetcher(self) -> Iterator[FetcherPort]:
@@ -333,7 +334,7 @@ class FetcherPortContractTests:
 class IngestPortContractTests:
     """Mixin genérico de contrato para qualquer implementação de IngestPort."""
 
-    stub_class: Type[IngestPort]
+    stub_class: type[IngestPort]
 
     @pytest.fixture
     def ingestor(self) -> Iterator[IngestPort]:
@@ -391,7 +392,7 @@ class IngestPortContractTests:
 class TransformerPortContractTests:
     """Mixin genérico de contrato p/ ``TransformerPort``."""
 
-    stub_class: Type[TransformerPort]
+    stub_class: type[TransformerPort]
 
     @pytest.fixture
     def transformer(self) -> Iterator[TransformerPort]:
@@ -442,7 +443,7 @@ class TransformerPortContractTests:
 class ValidatorPortContractTests:
     """Mixin genérico de contrato p/ ``ValidatorPort``."""
 
-    stub_class: Type[ValidatorPort]
+    stub_class: type[ValidatorPort]
 
     @pytest.fixture
     def validator(self) -> Iterator[ValidatorPort]:
@@ -481,7 +482,7 @@ class ValidatorPortContractTests:
 class URNPortContractTests:
     """Mixin genérico de contrato p/ ``URNPort``."""
 
-    stub_class: Type[URNPort]
+    stub_class: type[URNPort]
 
     @pytest.fixture
     def urn_gen(self) -> Iterator[URNPort]:
@@ -559,7 +560,7 @@ class TestURNPortContrato(URNPortContractTests):
 # ===========================================================================
 
 
-STUB_TO_PORT: Tuple[Tuple[Type[object], Type[abc.ABC], str], ...] = (
+STUB_TO_PORT: tuple[tuple[type[object], type[abc.ABC], str], ...] = (
     (StubFetcher, FetcherPort, "FetcherPort"),
     (StubIngestor, IngestPort, "IngestPort"),
     (StubTransformer, TransformerPort, "TransformerPort"),
@@ -578,8 +579,8 @@ class TestSubstituicaoLSP:
     )
     def test_isinstance_do_contrato(
         self,
-        stub_cls: Type[object],
-        porta_abstrata: Type[abc.ABC],
+        stub_cls: type[object],
+        porta_abstrata: type[abc.ABC],
         porta_nome: str,
     ) -> None:
         instancia = stub_cls()
@@ -600,16 +601,16 @@ class TestSubstituicaoLSP:
         """Duas implementações distintas de ``URNPort`` são intercambiáveis."""
 
         class OutroURN(URNPort):
-            def gerar(self, dados: Dict[str, Any]) -> str:
+            def gerar(self, dados: dict[str, Any]) -> str:
                 return "urn:lex:br:custom"
 
             def validar(self, urn: str) -> bool:
                 return urn == "urn:lex:br:custom"
 
-            def parsear(self, urn: str) -> Dict[str, Any]:
+            def parsear(self, urn: str) -> dict[str, Any]:
                 return {"urn": urn}
 
-        geradores: List[URNPort] = [StubURNGenerator(), OutroURN()]
+        geradores: list[URNPort] = [StubURNGenerator(), OutroURN()]
         for gerador in geradores:
             urn = gerador.gerar({"jurisdicao": "federal"})
             assert gerador.validar(urn) is True
@@ -626,10 +627,10 @@ class TestContratoIncompleto:
 
     def test_fetcher_sem_metadados_e_levantar_type_error(self) -> None:
         class ParcialFetcher(FetcherPort):
-            def buscar(self, config: Dict[str, Any]) -> FetchResult:
+            def buscar(self, config: dict[str, Any]) -> FetchResult:
                 return FetchResult(items=[])
 
-            def validar_config(self, config: Dict[str, Any]) -> bool:
+            def validar_config(self, config: dict[str, Any]) -> bool:
                 return True
 
         with pytest.raises(TypeError) as excinfo:
@@ -641,7 +642,7 @@ class TestContratoIncompleto:
             def ingerir(self, dados: FetchResult) -> IngestResult:
                 return IngestResult()
 
-            def metadados(self) -> Dict[str, Any]:
+            def metadados(self) -> dict[str, Any]:
                 return {}
 
         with pytest.raises(TypeError) as excinfo:
@@ -659,7 +660,7 @@ class TestContratoIncompleto:
 
     def test_validator_sem_regras(self) -> None:
         class ParcialValidator(ValidatorPort):
-            def validar(self, dados: List[Dict[str, Any]]) -> ValidationResult:
+            def validar(self, dados: list[dict[str, Any]]) -> ValidationResult:
                 return ValidationResult(is_valid=True)
 
         with pytest.raises(TypeError) as excinfo:
@@ -668,7 +669,7 @@ class TestContratoIncompleto:
 
     def test_urn_sem_parsear(self) -> None:
         class ParcialURN(URNPort):
-            def gerar(self, dados: Dict[str, Any]) -> str:
+            def gerar(self, dados: dict[str, Any]) -> str:
                 return "urn:lex:br:federal"
 
             def validar(self, urn: str) -> bool:
@@ -691,13 +692,13 @@ class TestContratoIncompleto:
         """Regra de Ouro: ausência de herança => não é uma porta conforme."""
 
         class DuckFetcher:
-            def buscar(self, config: Dict[str, Any]) -> FetchResult:
+            def buscar(self, config: dict[str, Any]) -> FetchResult:
                 return FetchResult(items=[])
 
-            def validar_config(self, config: Dict[str, Any]) -> bool:
+            def validar_config(self, config: dict[str, Any]) -> bool:
                 return True
 
-            def metadados(self) -> Dict[str, Any]:
+            def metadados(self) -> dict[str, Any]:
                 return {}
 
         assert not isinstance(DuckFetcher(), FetcherPort)
@@ -716,8 +717,8 @@ class TestDocstringsEMetadados:
     def test_docstring_da_classe_nao_vazia(
         self,
         porta_nome: str,
-        porta_abstrata: Type[abc.ABC],
-        metodos_esperados: Tuple[str, ...],
+        porta_abstrata: type[abc.ABC],
+        metodos_esperados: tuple[str, ...],
     ) -> None:
         doc = inspect.getdoc(porta_abstrata)
         assert doc, f"{porta_nome} não possui docstring"
@@ -727,8 +728,8 @@ class TestDocstringsEMetadados:
     def test_docstring_da_classe_tem_secoes_contratuais(
         self,
         porta_nome: str,
-        porta_abstrata: Type[abc.ABC],
-        metodos_esperados: Tuple[str, ...],
+        porta_abstrata: type[abc.ABC],
+        metodos_esperados: tuple[str, ...],
     ) -> None:
         doc = inspect.getdoc(porta_abstrata) or ""
         for secao in ("Pre-condicoes:", "Pos-condicoes:", "Invariantes:"):
@@ -738,8 +739,8 @@ class TestDocstringsEMetadados:
     def test_docstring_dos_metodos_tem_args_returns_raises(
         self,
         porta_nome: str,
-        porta_abstrata: Type[abc.ABC],
-        metodos_esperados: Tuple[str, ...],
+        porta_abstrata: type[abc.ABC],
+        metodos_esperados: tuple[str, ...],
     ) -> None:
         for nome in metodos_esperados:
             metodo = getattr(porta_abstrata, nome)
@@ -759,7 +760,7 @@ class TestDocstringsEMetadados:
             assert hasattr(ports_module, nome), nome
 
     def test_star_import_expoe_apenas_as_portas(self) -> None:
-        namespace: Dict[str, Any] = {}
+        namespace: dict[str, Any] = {}
         exec(  # noqa: S102 - avaliacao deliberada do contrato de __all__
             "from framework.core.ports import *", namespace
         )
@@ -775,16 +776,15 @@ class TestDocstringsEMetadados:
 PORTS_PATH = Path(ports_module.__file__).resolve()
 
 
-def _collect_imports(path: Path) -> List[str]:
+def _collect_imports(path: Path) -> list[str]:
     """Retorna todos os nomes importados (absolutos) por um módulo via AST."""
     arvore = ast.parse(path.read_text(encoding="utf-8"))
-    nomes: List[str] = []
+    nomes: list[str] = []
     for node in ast.walk(arvore):
         if isinstance(node, ast.Import):
             nomes.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                nomes.append(node.module)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            nomes.append(node.module)
     return nomes
 
 
