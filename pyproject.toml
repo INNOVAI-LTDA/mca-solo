@@ -1,0 +1,31 @@
+# pyproject.toml — Configuração centralizada de ferramentas (PEP 518)
+# MCA-Solo: consolida pytest, mypy, ruff e black em um único arquivo.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "--import-mode=importlib"
+markers = [
+    "integration: testes que cruzam fronteiras de módulo (ex: parser + orchestrator)",
+]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+explicit_package_bases = true
+mypy_path = "."
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.black]
+line-length = 88
+target-version = ["py313"]

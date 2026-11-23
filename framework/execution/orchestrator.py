@@ -12,6 +12,7 @@ Regras de Ouro aplicaveis:
 - "A excecao e o veiculo de transporte de contexto para Observabilidade."
 - "Gestao e invariante sob substituicao de implementacao."
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

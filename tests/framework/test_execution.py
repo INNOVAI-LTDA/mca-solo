@@ -15,10 +15,11 @@ Regras de Ouro verificadas:
     - "Falha explicita: toda violacao interrompe a execucao, sem fallback"
     - "Gestao e invariante sob substituicao de implementacao"
 """
+
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError, dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock
@@ -439,9 +440,7 @@ class TestStageExecutorDespacho:
         StageExecutor(registry).execute({"id": "s", "component": "f"}, {})
         assert spy.calls == [{}]
 
-    def test_transformer(
-        self, registry: ComponentRegistry, fetch_result: Any
-    ) -> None:
+    def test_transformer(self, registry: ComponentRegistry, fetch_result: Any) -> None:
         spy = TransformerSpy("transformed")
         registry.register("t", spy)
         out = StageExecutor(registry).execute(
@@ -580,9 +579,7 @@ class TestOrchestratorCicloEmRuntime:
     def test_dependencia_inexistente_produz_failed(
         self, orchestrator: Orchestrator
     ) -> None:
-        dag = make_dag(
-            stages=[{"id": "s1", "component": "f", "depends_on": ["ghost"]}]
-        )
+        dag = make_dag(stages=[{"id": "s1", "component": "f", "depends_on": ["ghost"]}])
         result = orchestrator.execute_definition(dag)
         assert result.status is ExecutionStatus.FAILED
         assert result.errors[0]["context"]["rule"] == "TOPO-01"
@@ -686,9 +683,7 @@ class TestComponentRegistry:
         registry.register("f", FetcherSpy(FetchResult(items=[])))
         assert registry.has("f") is True
 
-    def test_list_preserva_ordem_de_registro(
-        self, registry: ComponentRegistry
-    ) -> None:
+    def test_list_preserva_ordem_de_registro(self, registry: ComponentRegistry) -> None:
         registry.register("b", FetcherSpy(FetchResult(items=[])))
         registry.register("a", IngestSpy())
         assert registry.list() == ["b", "a"]
@@ -716,9 +711,7 @@ class TestComponentRegistry:
         assert exc.value.context["rule"] == "REG-02"
         assert exc.value.context["type"] == "object"
 
-    def test_classe_nao_instancia_rejeitada(
-        self, registry: ComponentRegistry
-    ) -> None:
+    def test_classe_nao_instancia_rejeitada(self, registry: ComponentRegistry) -> None:
         with pytest.raises(ConfigurationError) as exc:
             registry.register("cls", FetcherSpy)
         assert exc.value.context["rule"] == "REG-02"
@@ -826,9 +819,7 @@ class TestFalhaExplicita:
         rule: str,
     ) -> None:
         orchestrator.register_component("c", component)
-        dag = make_dag(
-            stages=[{"id": "s1", "component": "c", "input": "prev"}]
-        )
+        dag = make_dag(stages=[{"id": "s1", "component": "c", "input": "prev"}])
         # Injeta o payload invalido via estagio produtor literal.
         executor = StageExecutor(orchestrator._registry)
         with pytest.raises(ConfigurationError) as exc:
@@ -839,9 +830,7 @@ class TestFalhaExplicita:
         assert exc.value.context["stage_id"] == "s1"
         assert orchestrator.execute_definition(dag).status is ExecutionStatus.FAILED
 
-    def test_toda_excecao_e_framework_error(
-        self, registry: ComponentRegistry
-    ) -> None:
+    def test_toda_excecao_e_framework_error(self, registry: ComponentRegistry) -> None:
         with pytest.raises(FrameworkError):
             registry.get("ghost")
 
@@ -862,9 +851,7 @@ class TestFalhaExplicita:
 class TestIntegracaoDAGDefinition:
     """6.7 - Core DAG vs App DAG e integracao com DAGParser (ID 1.4)."""
 
-    def test_core_dag_nao_executa_componentes(
-        self, orchestrator: Orchestrator
-    ) -> None:
+    def test_core_dag_nao_executa_componentes(self, orchestrator: Orchestrator) -> None:
         dag = make_dag(
             dag_id="core_observability",
             tasks=[{"id": "t1", "component": "management.metrics"}],
@@ -936,16 +923,29 @@ class TestIntegracaoDAGDefinition:
 
     @pytest.mark.integration
     def test_integra_com_dag_parser(self, tmp_path: Path) -> None:
-        """Integracao real ID 1.4 + ID 2.1 via YAML em diretorio temporario."""
+        """Integracao real ID 1.4 + ID 2.1 via YAML em diretorio temporario.
+
+        O teste respeita a separacao fisica (VAL-04) entre Core e App DAGs:
+        - Core DAGs residem em framework_dags_dir (montado :ro em runtime).
+        - App DAGs residem em app_dags_dir (montado :rw em runtime).
+        - App DAGs NAO podem ter immutable=true (VAL-09).
+        - App DAGs NAO usam prefixo 'core_' (VAL-03).
+        """
         from framework.execution.parser import DAGParser
+
+        # Separação física: subdiretórios distintos para Core e App DAGs
+        core_dir = tmp_path / "core_dags"
+        app_dir = tmp_path / "app_dags"
+        core_dir.mkdir(parents=True, exist_ok=True)
+        app_dir.mkdir(parents=True, exist_ok=True)
 
         yaml_content = (
             "dag:\n"
             "  id: app_integration\n"
             "  description: DAG de integracao\n"
             "  schedule: null\n"
-            "  owner: dev\n"
-            "  immutable: false\n"
+            "  owner: dev_team\n"  # App DAG: owner livre (≠ framework)
+            "  immutable: false\n"  # VAL-09: App DAG não pode ser imutável
             "tasks: []\n"
             "notifications:\n"
             "  on_failure:\n"
@@ -961,10 +961,11 @@ class TestIntegracaoDAGDefinition:
             "      input: raw\n"
             "      depends_on: [fetch]\n"
         )
-        dag_file = tmp_path / "app_integration.yaml"
+        dag_file = app_dir / "app_integration.yaml"
         dag_file.write_text(yaml_content, encoding="utf-8")
 
-        parser = DAGParser(str(tmp_path), str(tmp_path))
+        # Parser construído com diretórios SEMPRE distintos
+        parser = DAGParser(str(core_dir), str(app_dir))
         dag = parser.parse_file(dag_file)
 
         orch = Orchestrator()
