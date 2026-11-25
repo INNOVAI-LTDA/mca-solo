@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import ast
 import json
-import time
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -34,21 +33,16 @@ from framework.core.exceptions import (
     IngestorError,
 )
 from framework.execution.connectors import (
-    BACKOFF_STRATEGIES,
-    REDACTED_KEYS,
-    RETRYABLE_STATUS,
     BoltConnector,
     Connector,
     ConnectorConfig,
     ConnectorResponse,
     HTTPConnector,
     RetryPolicy,
-    TransportResult,
     WebhookConnector,
     build_connector,
 )
 from framework.execution.orchestrator import ComponentRegistry
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -129,10 +123,7 @@ class TestRetryPolicyImutabilidade:
         assert policy.initial_delay == 1.0
         assert policy.max_delay == 30.0
         assert policy.multiplier == 2.0
-        assert policy.retryable_status == RETRYABLE_STATUS
-
-    def test_retryable_status_default(self) -> None:
-        assert RETRYABLE_STATUS == frozenset({408, 425, 429, 500, 502, 503, 504})
+        assert policy.retryable_status == frozenset({408, 425, 429, 500, 502, 503, 504})
 
 
 class TestRetryPolicyValidacao:
@@ -748,19 +739,28 @@ class TestObservabilidadeOBS01:
     """6.7 - OBS-01: conector nao escreve logs/metrics/arquivos."""
 
     def test_ast_sem_print_logging_open(self) -> None:
-        connectors_path = Path(__file__).resolve().parents[2] / "framework" / "execution" / "connectors.py"
+        connectors_path = (
+            Path(__file__).resolve().parents[2]
+            / "framework"
+            / "execution"
+            / "connectors.py"
+        )
         source = connectors_path.read_text(encoding="utf-8")
         tree = ast.parse(source)
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
-                    assert node.func.id not in {"print", "logging"}, (
-                        f"connectors.py contem chamada proibida: {node.func.id}"
-                    )
+                    assert node.func.id not in {
+                        "print",
+                        "logging",
+                    }, f"connectors.py contem chamada proibida: {node.func.id}"
                 elif isinstance(node.func, ast.Attribute):
-                    assert node.func.attr not in {"info", "warning", "error", "debug"}, (
-                        f"connectors.py contem chamada de logger proibida"
-                    )
+                    assert node.func.attr not in {
+                        "info",
+                        "warning",
+                        "error",
+                        "debug",
+                    }, "connectors.py contem chamada de logger proibida"
 
 
 class TestValidacaoCFG05:
