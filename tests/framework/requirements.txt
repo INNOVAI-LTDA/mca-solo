@@ -43,3 +43,6 @@ PyYAML>=6.0              # yaml.safe_load — parser unificado e test_core_dags.
 yamllint>=1.32           # Secao 7 da spec ID 1.4: yamllint -d relaxed framework/core/dags/
 jsonschema>=4.0          # Validacao opcional contra schema JSON (Secao 7 da spec ID 1.4)
 networkx>=3.0            # Validacao cruzada de aciclicidade (teste opcional da Secao 6.5)
+
+# --- Runtime dos conectores (ID 2.2) ---
+requests>=2.31             # HTTP/Webhook connectors (import lazy; CONN-06)
